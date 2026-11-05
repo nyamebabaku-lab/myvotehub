@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { useDB, useSession } from './store';
+import { useDB, useSession, publicVotes } from './store';
 import { countableVotes } from '../lib/results';
 
 export function useCurrentUser() {
   const id = useSession((s) => s.userId);
   const users = useDB((s) => s.users);
-  return useMemo(() => users.find((u) => u.id === id) || null, [users, id]);
+  const me = useDB((s) => s.me);
+  return useMemo(() => users.find((u) => u.id === id) || (me?.id === id ? me : null), [users, id, me]);
 }
 
 /** Events the user can manage: everything for admins, their company's for organisers, assigned ones for judges. */
@@ -27,7 +28,7 @@ export const notificationsFor = (user, list) =>
 
 /** Votes per nominee for the event's current round. */
 export function useTally(event) {
-  const votes = useDB((s) => s.votes);
+  const votes = useDB(publicVotes);
   return useMemo(() => {
     if (!event) return {};
     const t = {};

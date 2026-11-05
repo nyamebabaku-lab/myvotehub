@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom';
 import { CalendarDays, Users, Flame } from 'lucide-react';
-import { useDB } from '../data/store';
+import { useDB, publicVotes } from '../data/store';
 import { compactNum, fmtDate } from '../lib/format';
 import { Cover, PhaseBadge, TYPE } from './event';
 
 export default function EventCard({ event, to }) {
   const company = useDB((s) => s.companies.find((c) => c.id === event.companyId));
   const nominees = useDB((s) => s.nominees.filter((n) => n.eventId === event.id).length);
-  const votes = useDB((s) => s.votes.reduce((a, v) => (v.eventId === event.id && !v.void ? a + v.qty : a), 0));
+  const votes = useDB((s) => publicVotes(s).reduce((a, v) => (v.eventId === event.id && !v.void ? a + v.qty : a), 0));
   return (
     <Link to={to || `/e/${event.id}`} className="group card flex flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-lift">
       <Cover event={event} className="h-36">

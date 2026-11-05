@@ -3,8 +3,9 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FileText, Coins, LayoutList, Gavel, ClipboardCheck, Check, ArrowLeft, ArrowRight, Plus, Trash2, UserPlus } from 'lucide-react';
 import { useDB } from '../../data/store';
+import { LIVE } from '../../config';
 import { useCurrentUser } from '../../data/selectors';
-import { DEFAULT_BUNDLES } from '../../data/seed';
+import { DEFAULT_BUNDLES } from '../../data/constants';
 import { money } from '../../lib/format';
 import { categoryCode, submitEvent } from '../../lib/events';
 import { Button, Card, Field, Input, Select, Textarea, cx, toast, KeyValue, PageHeader, EmptyState } from '../../components/ui';
@@ -56,7 +57,8 @@ export default function EventWizard() {
   const [cats, setCats] = useState([{ key: 1, name: '', names: '' }]);
   const [newJudge, setNewJudge] = useState({ name: '', email: '' });
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
-  const judges = db.users.filter((u) => u.role === 'judge' && u.companyId === f.companyId);
+  // Live: only approved judges can be put on a panel.
+  const judges = db.users.filter((u) => u.role === 'judge' && u.companyId === f.companyId && (!LIVE || u.status === 'active'));
   const usingJudges = f.judgeWeight > 0;
 
   const validate = () => {
@@ -272,11 +274,17 @@ export default function EventWizard() {
                         </label>
                       ))}
                     </div>
+                    {LIVE ? (
+                      <p className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm text-slate-600 dark:bg-white/5 dark:text-slate-300">
+                        New judge? They create an account with your company code <b className="font-mono">{db.companies.find((c) => c.id === f.companyId)?.joinCode}</b> (Team &amp; judges). They appear here once MyVoteHub approves them.
+                      </p>
+                    ) : (
                     <div className="mt-3 flex flex-col gap-2 rounded-2xl bg-slate-50 p-3 dark:bg-white/5 sm:flex-row">
                       <Input placeholder="New judge name" value={newJudge.name} onChange={(e) => setNewJudge({ ...newJudge, name: e.target.value })} />
                       <Input placeholder="Email" type="email" value={newJudge.email} onChange={(e) => setNewJudge({ ...newJudge, email: e.target.value })} />
                       <Button variant="secondary" icon={UserPlus} onClick={addJudge}>Invite</Button>
                     </div>
+                    )}
                   </div>
                 </>
               )}

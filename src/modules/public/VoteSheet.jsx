@@ -9,6 +9,8 @@ import { money } from '../../lib/format';
 import { shareLink, publicUrl } from '../../lib/share';
 import { Modal, Button, Input, Field, cx, toast } from '../../components/ui';
 import { NomineePhoto } from '../../components/event';
+import { LIVE } from '../../config';
+import { livePay, liveRequestCode, liveCastFree } from '../../lib/liveVoting';
 
 const validPhone = (p) => /^0\d{9}$/.test(p.replace(/\s/g, ''));
 const validCard = (c) => c.replace(/\s/g, '').length >= 15;
@@ -16,6 +18,7 @@ const validCard = (c) => c.replace(/\s/g, '').length >= 15;
 export default function VoteSheet({ event, nominee, open, onClose }) {
   const free = event.votingMode === 'free';
   const savedVoter = useSession((s) => s.voter);
+  const testMode = useDB((s) => LIVE && s.settings.testMode);
   const setVoter = useSession((s) => s.setVoter);
   const category = useDB((s) => s.categories.find((c) => c.id === nominee?.categoryId));
   const [step, setStep] = useState('qty');
@@ -35,7 +38,8 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
     setAccount(saved && !saved.includes('@') ? saved : '');
     setOtp({ sent: null, code: '' });
     setResult(null);
-  }, [open, free, event]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when a different event/sheet opens, not on live data refreshes
+  }, [open, free, event?.id]);
 
   if (!nominee) return null;
   const allowed = canVote(event, nominee);
@@ -47,6 +51,18 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
     if (m.kind === 'momo' && !validPhone(account)) return toast.error('Enter a valid phone number', 'e.g. 0244123456');
     if (m.kind === 'card' && (!validCard(account) || !card.exp || card.cvv.length < 3)) return toast.error('Check your card details');
     setStep('processing');
+    if (LIVE) {
+      try {
+        const res = await livePay({ nominee, qty, method, voter: voterId });
+        if (m.kind === 'momo') setVoter(voterId, useSession.getState().voterCode);
+        setResult(res.ok ? { ref: res.ref, qty } : { error: res.error, ref: res.ref });
+        setStep(res.ok ? 'done' : 'failed');
+      } catch (e) {
+        setResult({ error: e.message });
+        setStep('failed');
+      }
+      return;
+    }
     const res = await charge({ method, account });
     const payment = recordPayment({ event, nominee, voter: voterId, method, amount, votes: qty, ok: res.ok });
     if (res.ok) {
@@ -60,16 +76,41 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
     }
   };
 
-  const verified = free && savedVoter && validPhone(savedVoter) && (!otp.sent || otp.verified);
-  const left = free ? freeVotesLeft(event, nominee.categoryId, verified ? savedVoter : account.replace(/\s/g, '')) : 0;
+  // Live: a verified phone keeps its code for 30 minutes so other categories don't need a new one.
+  const voterCode = useSession.getState().voterCode;
+  const verified = free && savedVoter && validPhone(savedVoter) && (!LIVE || !!voterCode) && (!otp.sent || otp.verified);
+  const left = free ? (LIVE ? event.freeVotesPerVoter : freeVotesLeft(event, nominee.categoryId, verified ? savedVoter : account.replace(/\s/g, ''))) : 0;
 
-  const sendCode = () => {
+  const sendCode = async () => {
     if (!validPhone(account)) return toast.error('Enter a valid phone number', 'e.g. 0244123456');
+    if (LIVE) {
+      try {
+        const code = await liveRequestCode(account.replace(/\s/g, ''));
+        setOtp({ sent: code || 'sms', code: '' });
+        toast.info(code ? `Test mode code: ${code}` : 'Code sent', `To ${account}`);
+      } catch (e) {
+        toast.error('Could not send the code', e.message);
+      }
+      return;
+    }
     const code = sendOtp();
     setOtp({ sent: code, code: '' });
     toast.info(`Demo SMS code: ${code}`, `Sent to ${account}`);
   };
+  const castFreeLive = async (phone, code) => {
+    try {
+      const remaining = await liveCastFree({ phone, code, nominee });
+      setVoter(phone, code);
+      setOtp((o) => ({ ...o, verified: true }));
+      setResult({ ref: `${remaining} left`, qty: 1, free: true });
+      setStep('done');
+    } catch (e) {
+      if (/code/i.test(e.message)) setVoter('', '');
+      toast.error('Vote not counted', e.message);
+    }
+  };
   const castFree = (phone) => {
+    if (LIVE) return castFreeLive(phone, useSession.getState().voterCode);
     const remaining = freeVotesLeft(event, nominee.categoryId, phone);
     if (remaining < 1) return toast.error('No free votes left', event.freePeriod === 'daily' ? 'Come back tomorrow to vote again.' : 'You have used your vote in this category.');
     const v = castVotes({ event, nominee, qty: 1, voter: phone, channel: 'web' });
@@ -78,6 +119,7 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
     setStep('done');
   };
   const verifyAndVote = () => {
+    if (LIVE) return castFreeLive(account.replace(/\s/g, ''), otp.code);
     if (otp.code !== otp.sent) return toast.error('Wrong code', 'Check the SMS and try again');
     setOtp((o) => ({ ...o, verified: true }));
     castFree(account.replace(/\s/g, ''));
@@ -201,7 +243,7 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
             <ShieldCheck className="h-6 w-6 text-emerald-500" />
             <div className="flex-1">
               <p className="text-sm font-bold text-slate-800 dark:text-white">Verified as {savedVoter}</p>
-              <p className="text-xs text-slate-500">{left} free vote{left !== 1 && 's'} left in this category</p>
+              <p className="text-xs text-slate-500">{LIVE ? `${event.freeVotesPerVoter} free vote${event.freeVotesPerVoter > 1 ? 's' : ''} per category${event.freePeriod === 'daily' ? ' each day' : ''}` : `${left} free vote${left !== 1 ? 's' : ''} left in this category`}</p>
             </div>
             <button className="text-xs font-bold text-brand-600" onClick={() => setVoter('')}>Change</button>
           </div>
@@ -214,7 +256,7 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
               </div>
             </Field>
             {otp.sent && (
-              <Field label="6-digit code" hint={`Demo: the code is ${otp.sent}`}>
+              <Field label="6-digit code" hint={otp.sent === 'sms' ? 'Check the SMS we just sent' : `${LIVE ? 'Test mode' : 'Demo'}: the code is ${otp.sent}`}>
                 <Input inputMode="numeric" autoFocus maxLength={6} placeholder="••••••" className="text-center text-lg font-bold tracking-[.5em]" value={otp.code} onChange={(e) => setOtp({ ...otp, code: e.target.value.replace(/\D/g, '') })} />
               </Field>
             )}
@@ -241,7 +283,7 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
         <p className="mt-1 text-slate-500">
           You gave <span className="font-bold text-slate-800 dark:text-white">{result.qty} vote{result.qty > 1 && 's'}</span> to {nominee.name}.
         </p>
-        <p className="mt-4 rounded-xl bg-slate-50 px-4 py-2 font-mono text-sm font-bold text-slate-700 dark:bg-white/5 dark:text-slate-200">Ref: {result.ref}</p>
+        <p className="mt-4 rounded-xl bg-slate-50 px-4 py-2 font-mono text-sm font-bold text-slate-700 dark:bg-white/5 dark:text-slate-200">{result.free && LIVE ? `${result.ref.split(' ')[0]} free vote${result.ref.startsWith('1 ') ? '' : 's'} left in this category` : `Ref: ${result.ref}`}</p>
         {!result.free && (
           <Link to={`/receipt/${result.ref}`} onClick={onClose} className="mt-3 text-sm font-bold text-brand-600 hover:underline">
             View receipt
@@ -275,6 +317,7 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
 
   return (
     <Modal open={open} onClose={step === 'processing' ? () => {} : onClose} title={free ? 'Free vote' : 'Vote'} subtitle={event.title} size="sm" footer={footer}>
+      {testMode && !free && <p className="mb-4 rounded-xl bg-amber-50 px-3 py-2 text-center text-xs font-bold uppercase tracking-wider text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">Test mode — no real money is charged</p>}
       {body}
     </Modal>
   );

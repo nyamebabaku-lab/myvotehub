@@ -6,6 +6,7 @@ import { useCurrentUser, notificationsFor } from '../../data/selectors';
 import { navFor, navItem, MOBILE_TABS, ROLES } from '../../lib/nav';
 import { Avatar, Badge, cx } from '../ui';
 import Logo from './Logo';
+import { LIVE, ADMIN_APP, PUBLIC_SITE } from '../../config';
 
 function SidebarNav({ role, collapsed, onNavigate }) {
   return (
@@ -62,13 +63,16 @@ export default function AppShell() {
     setMobileOpen(false);
     setMenuOpen(false);
     window.scrollTo(0, 0);
+    // Live builds: pull fresh data on every page change, on top of pushed updates.
+    if (LIVE) import('../../data/sync').then((m) => m.refreshSoon());
   }, [loc.pathname]);
 
   if (!user) return null;
   const unread = notificationsFor(user, notifications).filter((n) => !n.read).length;
   const tabs = (MOBILE_TABS[user.role] || ['dashboard']).map((k) => navItem(user.role, k)).filter(Boolean);
-  const signOut = () => {
-    logout();
+  const signOut = async () => {
+    if (LIVE) await (await import('../../lib/accounts')).signOut();
+    else logout();
     navigate('/login');
   };
 
@@ -114,7 +118,7 @@ export default function AppShell() {
               {ROLES[user.role].label}
             </Badge>
             <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-              <Link to="/explore" className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10 md:flex">
+              <Link to={ADMIN_APP ? PUBLIC_SITE : '/explore'} target={ADMIN_APP ? '_blank' : undefined} className="hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10 md:flex">
                 <Globe className="h-4 w-4" /> Public site
               </Link>
               <button onClick={toggleDark} className="rounded-xl p-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10" aria-label="Toggle dark mode">
@@ -141,7 +145,7 @@ export default function AppShell() {
                         <p className="font-semibold text-slate-900 dark:text-white">{user.name}</p>
                         <p className="truncate text-xs text-slate-500">{user.email}</p>
                       </div>
-                      <Link to="/explore" className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5 md:hidden">
+                      <Link to={ADMIN_APP ? PUBLIC_SITE : '/explore'} target={ADMIN_APP ? '_blank' : undefined} className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5 md:hidden">
                         <Globe className="h-4 w-4" /> Public site
                       </Link>
                       <button onClick={signOut} className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5">

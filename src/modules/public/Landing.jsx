@@ -1,7 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, ShieldCheck, Smartphone, Gavel, UserX, BarChart3, Wallet, Building2, Trophy, Sparkles, Zap, CheckCircle2, Search } from 'lucide-react';
 import { useState } from 'react';
-import { useDB } from '../../data/store';
+import { useDB, publicVotes } from '../../data/store';
+import { LIVE } from '../../config';
 import { compactNum, money } from '../../lib/format';
 import { isPublic, eventPhase } from '../../lib/voting';
 import EventCard from '../../components/EventCard';
@@ -10,7 +11,7 @@ import { NomineePhoto } from '../../components/event';
 function HeroBoard() {
   // A live mini-leaderboard from the busiest live event, for the hero.
   const events = useDB((s) => s.events);
-  const votes = useDB((s) => s.votes);
+  const votes = useDB(publicVotes);
   const nominees = useDB((s) => s.nominees);
   const ev = events.find((e) => e.id === 'evt_sma26') || events.find((e) => eventPhase(e) === 'live');
   if (!ev) return null;
@@ -67,7 +68,7 @@ const FEATURES = [
 
 export default function Landing() {
   const events = useDB((s) => s.events);
-  const votes = useDB((s) => s.votes);
+  const votes = useDB(publicVotes);
   const companies = useDB((s) => s.companies);
   const payments = useDB((s) => s.payments);
   const [q, setQ] = useState('');
@@ -172,8 +173,8 @@ export default function Landing() {
             <h2 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Run your whole event from one dashboard</h2>
             <p className="mt-3 text-slate-500">Award schemes, pageants, reality shows and school polls. Onboard your company, build your event in minutes and get paid straight to MoMo or bank.</p>
             <div className="mt-6 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 p-5 text-white">
-              <p className="text-xs font-bold uppercase tracking-widest text-brand-200">Raised for organisers</p>
-              <p className="mt-1 text-3xl font-extrabold">{money(raised)}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-brand-200">{LIVE ? 'Get paid fast' : 'Raised for organisers'}</p>
+              <p className="mt-1 text-3xl font-extrabold">{LIVE ? 'MoMo & bank payouts' : money(raised)}</p>
               <p className="mt-1 text-sm text-brand-100">Simple pricing: a small commission per paid vote. No setup fees.</p>
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
@@ -181,7 +182,7 @@ export default function Landing() {
                 <Building2 className="h-4 w-4" /> Onboard your company
               </Link>
               <Link to="/login" className="inline-flex h-12 items-center rounded-xl px-5 text-sm font-bold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 dark:text-slate-200 dark:ring-white/10">
-                Try the demo
+                {LIVE ? 'Sign in' : 'Try the demo'}
               </Link>
             </div>
           </div>

@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { UserPlus, Trash2, Gavel, Users } from 'lucide-react';
 import { useDB } from '../../data/store';
 import { useCurrentUser } from '../../data/selectors';
+import { LIVE } from '../../config';
+import { STATUS } from '../../lib/accounts';
+import { Copy, KeyRound } from 'lucide-react';
 import { Avatar, Badge, Button, DataTable, FormModal, IconButton, PageHeader, confirmDialog, toast } from '../../components/ui';
 
 export default function Team() {
@@ -9,6 +12,7 @@ export default function Team() {
   const db = useDB();
   const [role, setRole] = useState(null);
   const people = db.users.filter((u) => u.companyId === user.companyId);
+  const company = db.companies.find((c) => c.id === user.companyId);
   const events = db.events.filter((e) => e.companyId === user.companyId);
   const add = (v) => {
     if (db.users.some((u) => u.email.toLowerCase() === v.email.toLowerCase())) return toast.error('Email already in use');
@@ -25,7 +29,18 @@ export default function Team() {
   };
   return (
     <>
-      <PageHeader title="Team & judges" subtitle="People who can manage your events or score nominees." actions={<><Button variant="secondary" icon={Gavel} onClick={() => setRole('judge')}>Invite judge</Button><Button icon={UserPlus} onClick={() => setRole('organiser')}>Add team member</Button></>} />
+      <PageHeader title="Team & judges" subtitle="People who can manage your events or score nominees." actions={!LIVE && <><Button variant="secondary" icon={Gavel} onClick={() => setRole('judge')}>Invite judge</Button><Button icon={UserPlus} onClick={() => setRole('organiser')}>Add team member</Button></>} />
+      {LIVE && (
+        <div className="mb-6 flex flex-col gap-4 rounded-3xl bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white sm:flex-row sm:items-center">
+          <KeyRound className="h-10 w-10 shrink-0 text-brand-200" />
+          <div className="flex-1">
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-200">Your company code</p>
+            <p className="mt-1 font-mono text-3xl font-black tracking-[.3em]">{company?.joinCode || '······'}</p>
+            <p className="mt-1 text-sm text-brand-100">Team members and judges download MyVoteHub, tap <b>Create account → Join your company</b> and enter this code. MyVoteHub approves each account, then you can add judges to your events.</p>
+          </div>
+          <Button variant="secondary" icon={Copy} onClick={() => navigator.clipboard?.writeText(company?.joinCode || '').then(() => toast.success('Code copied'))}>Copy</Button>
+        </div>
+      )}
       <DataTable
         rows={people}
         columns={[
@@ -33,8 +48,9 @@ export default function Team() {
           { key: 'role', label: 'Role', render: (u) => (u.role === 'judge' ? <Badge tone="violet"><Gavel className="h-3 w-3" /> Judge</Badge> : <Badge tone="blue"><Users className="h-3 w-3" /> Organiser</Badge>) },
           { key: 'title', label: 'Title', hideOnMobile: true },
           { key: 'events', label: 'Judging', render: (u) => (u.role === 'judge' ? events.filter((e) => e.judgeIds.includes(u.id)).map((e) => e.title).join(', ') || '—' : '—'), hideOnMobile: true, nosort: true },
-          { key: 'x', label: '', nosort: true, render: (u) => <IconButton icon={Trash2} label="Remove" onClick={() => remove(u)} /> },
-        ]}
+          LIVE && { key: 'status', label: 'Status', render: (u) => <Badge tone={STATUS[u.status || 'active'].tone}>{STATUS[u.status || 'active'].label}</Badge> },
+          !LIVE && { key: 'x', label: '', nosort: true, render: (u) => <IconButton icon={Trash2} label="Remove" onClick={() => remove(u)} /> },
+        ].filter(Boolean)}
       />
       <FormModal
         open={!!role}

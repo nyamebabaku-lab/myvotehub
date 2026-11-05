@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Vote, Users, Banknote, TrendingUp, Radio, Smartphone, Share2, Copy, Zap } from 'lucide-react';
 import { useDB } from '../../../data/store';
+import { LIVE, PUBLIC_SITE } from '../../../config';
 import { useCurrentUser } from '../../../data/selectors';
 import { compactNum, dailySeries, money, moneyShort, pct, sum } from '../../../lib/format';
 import { walletFor } from '../../../lib/wallet';
@@ -45,7 +46,7 @@ export default function Overview({ event }) {
   const channels = Object.entries(votes.reduce((a, v) => ({ ...a, [v.channel]: (a[v.channel] || 0) + v.qty }), {})).map(([k, v]) => [k === 'web' ? 'Web & app' : k.toUpperCase(), v]);
   const methods = Object.entries(db.payments.filter((p) => p.eventId === event.id && p.status === 'success').reduce((a, p) => ({ ...a, [p.method]: (a[p.method] || 0) + p.amount }), {})).map(([k, v]) => [methodLabel(k), Math.round(v)]);
   const voters = new Set(votes.map((v) => v.voter)).size;
-  const url = publicUrl(`/e/${event.id}`);
+  const url = LIVE ? `${PUBLIC_SITE}#/e/${event.id}` : publicUrl(`/e/${event.id}`);
   const lastHour = sum(votes.filter((v) => Date.now() - new Date(v.at).getTime() < 3600000), (v) => v.qty);
 
   return (
@@ -79,7 +80,7 @@ export default function Overview({ event }) {
               <Button variant="secondary" className="flex-1" icon={Copy} onClick={() => navigator.clipboard?.writeText(url).then(() => toast.success('Link copied'))}>Copy link</Button>
               <Button variant="secondary" className="flex-1" icon={Share2} onClick={() => shareLink(url, event.title)}>Share</Button>
             </div>
-            {eventPhase(event) === 'live' && (
+            {!LIVE && eventPhase(event) === 'live' && (
               <button
                 type="button"
                 onClick={() => {

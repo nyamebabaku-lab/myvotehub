@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, CalendarCheck2, CalendarRange, Wallet, Receipt, ScrollText, Settings, Users, Gavel, Bell, ShieldCheck } from 'lucide-react';
+import { UserCheck, LayoutDashboard, Building2, CalendarCheck2, CalendarRange, Wallet, Receipt, ScrollText, Settings, Users, Gavel, Bell, ShieldCheck } from 'lucide-react';
 
 export const ROLES = {
   admin: { label: 'Super Admin' },
@@ -10,6 +10,7 @@ const NAV = {
   admin: [
     { group: 'Platform', items: [
       { key: 'dashboard', label: 'Overview', path: '/app', icon: LayoutDashboard },
+      { key: 'accounts', label: 'Accounts', path: '/app/accounts', icon: UserCheck },
       { key: 'companies', label: 'Companies', path: '/app/companies', icon: Building2 },
       { key: 'approvals', label: 'Event approvals', path: '/app/approvals', icon: ShieldCheck },
       { key: 'events', label: 'All events', path: '/app/events', icon: CalendarRange },
@@ -51,7 +52,7 @@ const NAV = {
 export const navFor = (role) => NAV[role] || [];
 export const canAccess = (role, key) => navFor(role).some((g) => g.items.some((i) => i.key === key));
 export const MOBILE_TABS = {
-  admin: ['dashboard', 'companies', 'approvals', 'withdrawals'],
+  admin: ['dashboard', 'accounts', 'approvals', 'withdrawals'],
   organiser: ['dashboard', 'events', 'wallet', 'transactions'],
   judge: ['dashboard', 'judging', 'notifications'],
 };

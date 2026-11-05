@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { Save, RotateCcw, Percent, ShieldCheck, Database } from 'lucide-react';
+import { Save, RotateCcw, Percent, ShieldCheck, Database, FlaskConical, Trash2 } from 'lucide-react';
 import { useDB } from '../../data/store';
+import { useCurrentUser } from '../../data/selectors';
+import { LIVE } from '../../config';
+import { setTestMode, clearTestData } from '../../lib/accounts';
 import { Button, Card, CardHeader, Field, Input, PageHeader, Select, confirmDialog, toast } from '../../components/ui';
 
 export default function Settings() {
@@ -18,6 +21,27 @@ export default function Settings() {
     if (!(await confirmDialog('Reset all demo data?', 'Every company, event, vote and payment goes back to the original demo.', { confirmLabel: 'Reset' }))) return;
     resetDemo();
     toast.success('Demo data restored');
+  };
+  const me = useCurrentUser();
+  const toggleTest = async () => {
+    const next = !f.testMode;
+    if (!(await confirmDialog(next ? 'Turn test mode on?' : 'Turn test mode off?', next ? 'Simulated checkout comes back and test money counts again.' : 'Simulated checkout stops and test money no longer counts. Do this only when real Hubtel payments are connected.', { confirmLabel: 'Confirm' }))) return;
+    try {
+      await setTestMode(next);
+      setF((x) => ({ ...x, testMode: next }));
+      toast.success(next ? 'Test mode on' : 'Test mode off');
+    } catch (e) {
+      toast.error('Could not change test mode', e.message);
+    }
+  };
+  const clearTest = async () => {
+    if (!(await confirmDialog('Delete all test payments and votes?', 'This cannot be undone.', { confirmLabel: 'Clear test data' }))) return;
+    try {
+      const n = await clearTestData();
+      toast.success('Test data cleared', `${n} vote records removed`);
+    } catch (e) {
+      toast.error('Could not clear test data', e.message);
+    }
   };
   const kb = Math.round((localStorage.getItem('myvotehub-db')?.length || 0) / 1024);
   return (
@@ -41,6 +65,18 @@ export default function Settings() {
             <Field label="Support email" className="sm:col-span-2"><Input value={f.supportEmail} onChange={set('supportEmail')} /></Field>
           </div>
         </Card>
+        {LIVE ? (
+          <Card className="xl:col-span-2">
+            <CardHeader title="Test mode" subtitle={f.testMode ? 'ON — checkout is simulated and every payment and vote is marked TEST' : 'OFF — only real payments count'} icon={FlaskConical} />
+            <div className="flex flex-col gap-3 p-5 pt-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-slate-500">Keep test mode on until Hubtel is connected. Turning it off hides test money from wallets and results; clearing removes it for good.</p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant={f.testMode ? 'danger' : 'secondary'} onClick={toggleTest} disabled={!me?.super}>{f.testMode ? 'Turn test mode off' : 'Turn test mode on'}</Button>
+                <Button variant="soft-red" icon={Trash2} onClick={clearTest} disabled={!me?.super}>Clear test data</Button>
+              </div>
+            </div>
+          </Card>
+        ) : (
         <Card className="xl:col-span-2">
           <CardHeader title="Demo data" subtitle={`Stored in this browser · ${kb} KB used`} icon={Database} />
           <div className="flex flex-col gap-3 p-5 pt-3 sm:flex-row sm:items-center sm:justify-between">
@@ -48,6 +84,7 @@ export default function Settings() {
             <Button variant="soft-red" icon={RotateCcw} onClick={reset}>Reset demo data</Button>
           </div>
         </Card>
+        )}
       </div>
     </>
   );

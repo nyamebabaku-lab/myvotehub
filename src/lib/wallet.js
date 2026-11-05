@@ -2,10 +2,15 @@
 import { useDB, useSession } from '../data/store';
 import { money, nowISO, sum } from './format';
 import { methodLabel } from './payments';
+import { LIVE } from '../config';
+import { supabase, must } from './supabase';
+import { refresh } from '../data/sync';
 
-export function walletFor(companyId, { payments, withdrawals }, eventId) {
-  const ok = payments.filter((p) => p.companyId === companyId && p.status === 'success' && (!eventId || p.eventId === eventId));
-  const mine = withdrawals.filter((w) => w.companyId === companyId);
+export function walletFor(companyId, { payments, withdrawals, settings }, eventId) {
+  // Live builds: test money only counts while test mode is on (the server applies the same rule).
+  const counts = (x) => !LIVE || settings?.testMode || !x.isTest;
+  const ok = payments.filter((p) => p.companyId === companyId && p.status === 'success' && (!eventId || p.eventId === eventId) && counts(p));
+  const mine = withdrawals.filter((w) => w.companyId === companyId && counts(w));
   const gross = sum(ok, (p) => p.amount);
   const commission = sum(ok, (p) => p.commission);
   const net = sum(ok, (p) => p.net);
@@ -16,7 +21,11 @@ export function walletFor(companyId, { payments, withdrawals }, eventId) {
 
 export const destinationLabel = (d) => (!d ? '—' : d.type === 'bank' ? `${d.bank} · ${d.number}` : `${methodLabel(d.network)} · ${d.number}`);
 
-export function requestWithdrawal(companyId, amount, destination) {
+export async function requestWithdrawal(companyId, amount, destination) {
+  if (LIVE) {
+    must(await supabase.rpc('request_withdrawal', { amt: amount, dest: destination }));
+    return refresh();
+  }
   const db = useDB.getState();
   const w = walletFor(companyId, db);
   if (amount < db.settings.minWithdrawal) throw new Error(`Minimum withdrawal is ${money(db.settings.minWithdrawal)}`);
@@ -31,7 +40,11 @@ export function requestWithdrawal(companyId, amount, destination) {
   return rec;
 }
 
-export function decideWithdrawal(id, approve, note = '') {
+export async function decideWithdrawal(id, approve, note = '') {
+  if (LIVE) {
+    must(await supabase.rpc('decide_withdrawal', { wid: id, approve, note: note || null }));
+    return refresh();
+  }
   const db = useDB.getState();
   const w = db.withdrawals.find((x) => x.id === id);
   if (!w || w.status !== 'pending') return;

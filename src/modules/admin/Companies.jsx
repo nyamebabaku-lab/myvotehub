@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { BadgeCheck, Ban, RotateCcw, Plus, FileCheck2 } from 'lucide-react';
 import { useDB } from '../../data/store';
+import { LIVE } from '../../config';
+import { setCompanyStatus } from '../../lib/accounts';
 import { walletFor, destinationLabel } from '../../lib/wallet';
 import { fmtDate, money } from '../../lib/format';
 import { Avatar, Badge, Button, DataTable, Field, FormModal, Input, KeyValue, Modal, PageHeader, Tabs, toast, confirmDialog } from '../../components/ui';
 
-const STATUS = { active: ['green', 'Active'], pending: ['amber', 'Pending KYC'], suspended: ['red', 'Suspended'] };
+const STATUS = { active: ['green', 'Active'], pending: ['amber', 'Pending KYC'], suspended: ['red', 'Suspended'], deactivated: ['slate', 'Deactivated'] };
 
 export default function Companies() {
   const db = useDB();
@@ -20,6 +22,14 @@ export default function Companies() {
 
   const setStatus = async (c, status) => {
     if (status === 'suspended' && !(await confirmDialog(`Suspend ${c.name}?`, 'Their organisers cannot withdraw and new events cannot be approved.', { confirmLabel: 'Suspend' }))) return;
+    if (LIVE) {
+      try {
+        await setCompanyStatus(c.id, status);
+        return toast.success(status === 'active' ? 'Company verified' : 'Company suspended', c.name);
+      } catch (e) {
+        return toast.error('Could not update the company', e.message);
+      }
+    }
     db.update('companies', c.id, { status, kyc: status === 'active' ? 'verified' : c.kyc });
     db.log(status === 'active' ? 'Company verified' : 'Company suspended', c.name, { companyId: c.id });
     db.notify({ companyId: c.id, title: status === 'active' ? 'Your company is verified ✅' : 'Account suspended', text: status === 'active' ? 'You can now publish events and withdraw.' : 'Contact MyVoteHub support.', link: '/app' });
@@ -35,8 +45,8 @@ export default function Companies() {
 
   return (
     <>
-      <PageHeader title="Companies" subtitle="Organisations that run events on MyVoteHub." actions={<Button icon={Plus} onClick={() => setAdding(true)}>Add company</Button>} />
-      <Tabs className="mb-4" value={tab} onChange={setTab} tabs={[['all', 'All'], ['active', 'Active'], ['pending', 'Pending'], ['suspended', 'Suspended']].map(([value, label]) => ({ value, label, count: value === 'all' ? db.companies.length : db.companies.filter((c) => c.status === value).length }))} />
+      <PageHeader title="Companies" subtitle="Organisations that run events on MyVoteHub." actions={!LIVE && <Button icon={Plus} onClick={() => setAdding(true)}>Add company</Button>} />
+      <Tabs className="mb-4" value={tab} onChange={setTab} tabs={[['all', 'All'], ['active', 'Active'], ['pending', 'Pending'], ['suspended', 'Suspended'], ['deactivated', 'Deactivated']].map(([value, label]) => ({ value, label, count: value === 'all' ? db.companies.length : db.companies.filter((c) => c.status === value).length }))} />
       <DataTable
         rows={rows}
         onRowClick={(r) => setView(r.id)}

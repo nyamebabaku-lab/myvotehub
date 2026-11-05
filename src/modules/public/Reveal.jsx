@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Maximize2, X, Crown, Play, RotateCcw } from 'lucide-react';
-import { useDB } from '../../data/store';
+import { useDB, publicVotes, publicScores } from '../../data/store';
 import { categoryResults } from '../../lib/results';
 import { compactNum } from '../../lib/format';
 import { NomineePhoto } from '../../components/event';
@@ -13,7 +13,8 @@ import { publicUrl } from '../../lib/share';
 
 export default function Reveal() {
   const { eventId } = useParams();
-  const db = useDB();
+  const raw = useDB();
+  const db = useMemo(() => ({ ...raw, votes: publicVotes(raw), scores: publicScores(raw) }), [raw]);
   const event = db.events.find((e) => e.id === eventId);
   const cats = db.categories.filter((c) => c.eventId === eventId).sort((a, b) => a.order - b.order);
   const [idx, setIdx] = useState(0);

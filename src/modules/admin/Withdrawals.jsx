@@ -15,7 +15,11 @@ export default function Withdrawals() {
   const user = (id) => db.users.find((u) => u.id === id)?.name || '—';
   const approve = async (w) => {
     if (!(await confirmDialog(`Pay ${money(w.amount)} to ${name(w.companyId)}?`, `Funds go to ${destinationLabel(w.destination)}.`, { danger: false, confirmLabel: 'Approve & pay' }))) return;
-    decideWithdrawal(w.id, true);
+    try {
+      await decideWithdrawal(w.id, true);
+    } catch (e) {
+      return toast.error('Could not approve', e.message);
+    }
     toast.success('Payout sent', `${money(w.amount)} · ${destinationLabel(w.destination)}`);
   };
   return (
@@ -69,7 +73,7 @@ export default function Withdrawals() {
           { key: 'decidedAt', label: 'Decided', render: (w) => fmtDateTime(w.decidedAt), hideOnMobile: true },
         ]}
       />
-      <Modal open={!!reject} onClose={() => setReject(null)} title="Reject withdrawal" subtitle={reject && `${name(reject.w.companyId)} · ${money(reject.w.amount)}`} size="sm" footer={<><Button variant="secondary" onClick={() => setReject(null)}>Cancel</Button><Button variant="danger" onClick={() => { decideWithdrawal(reject.w.id, false, reject.note || 'Rejected by admin'); setReject(null); toast.info('Withdrawal rejected'); }}>Reject</Button></>}>
+      <Modal open={!!reject} onClose={() => setReject(null)} title="Reject withdrawal" subtitle={reject && `${name(reject.w.companyId)} · ${money(reject.w.amount)}`} size="sm" footer={<><Button variant="secondary" onClick={() => setReject(null)}>Cancel</Button><Button variant="danger" onClick={async () => { const r = reject; setReject(null); try { await decideWithdrawal(r.w.id, false, r.note || 'Rejected by admin'); toast.info('Withdrawal rejected'); } catch (e) { toast.error('Could not reject', e.message); } }}>Reject</Button></>}>
         {reject && <Field label="Reason (sent to the organiser)"><Textarea value={reject.note} onChange={(e) => setReject({ ...reject, note: e.target.value })} placeholder="e.g. Payout account name does not match KYC" /></Field>}
       </Modal>
     </>

@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, UserRound, Landmark, ClipboardCheck, Check, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useDB, useSession } from '../../data/store';
+import { LIVE } from '../../config';
+import { registerCompany, enter } from '../../lib/accounts';
 import { Button, Field, Input, Select, cx, toast, KeyValue } from '../../components/ui';
 import { ImagePicker } from '../../components/event';
 import { METHODS } from '../../lib/payments';
@@ -32,14 +34,29 @@ export default function Onboard() {
     const miss = required[step].filter((k) => !f[k]);
     if (f.payoutType === 'bank' && step === 2 && !f.bank) miss.push('bank');
     if (miss.length) return toast.error('Please complete the form', 'Some required fields are empty');
-    if (step === 1 && useDB.getState().users.some((u) => u.email.toLowerCase() === f.contactEmail.toLowerCase())) return toast.error('Email already registered', 'Sign in instead');
+    if (step === 1 && !LIVE && useDB.getState().users.some((u) => u.email.toLowerCase() === f.contactEmail.toLowerCase())) return toast.error('Email already registered', 'Sign in instead');
     if (step === 1 && f.password.length < 6) return toast.error('Password too short', 'Use at least 6 characters');
     if (step < 3) return setStep(step + 1);
     submit();
   };
   const payout = f.payoutType === 'bank' ? { type: 'bank', bank: f.bank, number: f.number, name: f.accountName } : { type: 'momo', network: f.network, number: f.number, name: f.accountName };
 
+  const [busy, setBusy] = useState(false);
+  const submitLive = async () => {
+    setBusy(true);
+    try {
+      const company = { name: f.name, industry: f.industry, email: f.email, phone: f.phone, city: f.city, logo: f.logo, kycDocs: { regNo: f.regNo, ghanaCard: f.ghanaCard }, payout };
+      await enter(await registerCompany({ email: f.contactEmail, password: f.password, company, name: f.contactName, title: f.contactTitle, phone: f.phone }));
+      toast.success('Application received', 'MyVoteHub will review your company and approve your account.');
+      navigate('/app');
+    } catch (e) {
+      toast.error('Could not create the account', e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
   const submit = () => {
+    if (LIVE) return submitLive();
     const db = useDB.getState();
     const co = db.add('companies', { name: f.name, industry: f.industry, email: f.email, phone: f.phone, city: f.city, logo: f.logo, brandColor: '#2556eb', kyc: 'submitted', kycDocs: { regNo: f.regNo, ghanaCard: f.ghanaCard }, status: 'pending', commissionPct: db.settings.defaultCommission, payout });
     const user = db.add('users', { role: 'organiser', companyId: co.id, name: f.contactName, title: f.contactTitle || 'Owner', email: f.contactEmail, password: f.password, status: 'active' });
@@ -121,7 +138,7 @@ export default function Onboard() {
         )}
         <div className="mt-8 flex justify-between gap-2 border-t border-slate-100 pt-5 dark:border-white/5">
           <Button variant="secondary" icon={ArrowLeft} disabled={step === 0} onClick={() => setStep(step - 1)}>Back</Button>
-          <Button variant={step === 3 ? 'danger' : 'primary'} onClick={nextStep}>
+          <Button variant={step === 3 ? 'danger' : 'primary'} onClick={nextStep} disabled={busy}>
             {step === 3 ? 'Submit application' : 'Continue'} <ArrowRight className="h-4 w-4" />
           </Button>
         </div>

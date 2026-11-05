@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, EyeOff, MonitorPlay, Trophy } from 'lucide-react';
-import { useDB } from '../../data/store';
+import { useDB, publicVotes, publicScores } from '../../data/store';
+import { LIVE } from '../../config';
 import { eventResults, usesJudges } from '../../lib/results';
 import { isPublic } from '../../lib/voting';
 import { compactNum, fmtDate } from '../../lib/format';
@@ -11,7 +12,8 @@ import ResultsBoard from '../../components/ResultsBoard';
 
 export default function PublicResults() {
   const { eventId } = useParams();
-  const db = useDB();
+  const raw = useDB();
+  const db = useMemo(() => ({ ...raw, votes: publicVotes(raw), scores: publicScores(raw) }), [raw]);
   const event = db.events.find((e) => e.id === eventId);
   const [round, setRound] = useState(event?.rounds?.current ?? null);
   const res = useMemo(() => event && eventResults(event, db, { round, withJudges: event.resultsReleased }), [event, db, round]);
@@ -38,7 +40,7 @@ export default function PublicResults() {
           <Button variant="soft" icon={MonitorPlay}>Big-screen mode</Button>
         </Link>
       </div>
-      {event.rounds && (
+      {event.rounds && !LIVE && (
         <Tabs className="mt-5" value={round} onChange={setRound} tabs={event.rounds.list.map((r) => ({ value: r.n, label: r.label + (r.n === event.rounds.current ? ' (now)' : '') }))} />
       )}
       {!event.resultsReleased && usesJudges(event) && !hidden && (

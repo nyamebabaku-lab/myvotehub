@@ -20,9 +20,9 @@ export default function Wallet() {
   const [amount, setAmount] = useState('');
   const [dest, setDest] = useState(company?.payout || { type: 'momo', network: 'mtn', number: '', name: '' });
 
-  const submit = () => {
+  const submit = async () => {
     try {
-      requestWithdrawal(user.companyId, Number(amount), dest);
+      await requestWithdrawal(user.companyId, Number(amount), dest);
       toast.success('Withdrawal requested', `${money(Number(amount))} — MyVoteHub will review it shortly`);
       setOpen(false);
       setAmount('');

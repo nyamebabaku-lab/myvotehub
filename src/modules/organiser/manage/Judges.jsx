@@ -1,13 +1,18 @@
 import { Lock, Unlock, Gavel, CheckCircle2, EyeOff } from 'lucide-react';
 import { useDB } from '../../../data/store';
+import { LIVE } from '../../../config';
 import { judgeProgress, maxScore } from '../../../lib/results';
 import { releaseResults, withdrawResults } from '../../../lib/events';
 import { Avatar, Badge, Button, Card, CardHeader, Progress, confirmDialog, toast } from '../../../components/ui';
 
 export default function Judges({ event }) {
   const db = useDB();
-  const progress = judgeProgress(event, db);
-  const panel = db.users.filter((u) => u.role === 'judge' && u.companyId === event.companyId);
+  const noms0 = db.nominees.filter((n) => n.eventId === event.id && n.status !== 'evicted').length;
+  // Live: organisers get submission counts from the server, never the scores themselves.
+  const progress = LIVE
+    ? (db.judgeProgress[event.id] || []).map((p) => ({ judge: db.users.find((u) => u.id === p.judge_id) || { id: p.judge_id, name: p.name }, submitted: p.submitted, drafts: p.drafts, total: noms0 }))
+    : judgeProgress(event, db);
+  const panel = db.users.filter((u) => u.role === 'judge' && u.companyId === event.companyId && (!LIVE || u.status === 'active'));
   const allDone = progress.every((p) => p.submitted >= p.total);
   const noms = db.nominees.filter((n) => n.eventId === event.id);
   const toggleJudge = (id) => db.update('events', event.id, { judgeIds: event.judgeIds.includes(id) ? event.judgeIds.filter((x) => x !== id) : [...event.judgeIds, id] });
@@ -61,7 +66,7 @@ export default function Judges({ event }) {
             ))}
             {!progress.length && <p className="text-sm text-slate-400">No judges on this panel yet.</p>}
           </div>
-          {event.resultsReleased && progress.length > 0 && (
+          {event.resultsReleased && progress.length > 0 && (!LIVE || db.scores.some((x) => x.eventId === event.id && !x.judgeId?.startsWith('judge_'))) && (
             <div className="overflow-x-auto border-t border-slate-100 dark:border-white/5">
               <table className="w-full">
                 <thead className="bg-slate-50/80 dark:bg-white/[.03]">

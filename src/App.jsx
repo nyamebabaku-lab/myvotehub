@@ -1,4 +1,6 @@
 import { useEffect, lazy, Suspense } from 'react';
+import { LIVE, ADMIN_APP } from './config';
+import AccountGate from './components/AccountGate';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { useDB, useSession } from './data/store';
@@ -18,7 +20,9 @@ const PublicResults = lazy(() => import('./modules/public/PublicResults'));
 const Receipt = lazy(() => import('./modules/public/Receipt'));
 const Reveal = lazy(() => import('./modules/public/Reveal'));
 const Onboard = lazy(() => import('./modules/public/Onboard'));
-const Login = lazy(() => import('./modules/auth/Login'));
+const Login = lazy(() => (LIVE ? import('./modules/auth/LiveLogin') : import('./modules/auth/Login')));
+const Signup = lazy(() => import('./modules/auth/Signup'));
+const Accounts = lazy(() => import('./modules/admin/Accounts'));
 const Dashboard = lazy(() => import('./modules/dashboard/Dashboard'));
 const Events = lazy(() => import('./modules/organiser/Events'));
 const EventWizard = lazy(() => import('./modules/organiser/EventWizard'));
@@ -57,8 +61,23 @@ function Guard({ k, children }) {
 
 function RequireUser({ children }) {
   const user = useCurrentUser();
+  if (LIVE) return <AccountGate>{children}</AccountGate>;
   if (!user) return <Navigate to="/login" replace />;
   return children;
+}
+
+/** Live builds: restore the signed-in account (or start as a public visitor) before showing anything. */
+function useLiveSession() {
+  useEffect(() => {
+    if (!LIVE) return;
+    import('./lib/accounts').then(async ({ fetchProfile, enter }) => {
+      try {
+        await enter(await fetchProfile());
+      } catch {
+        await enter(null);
+      }
+    });
+  }, []);
 }
 
 export default function App() {
@@ -69,21 +88,23 @@ export default function App() {
     document.documentElement.classList.toggle('dark', dark);
   }, [dark]);
 
+  useLiveSession();
   const g = (k, el) => <Guard k={k}>{el}</Guard>;
   return (
     <HashRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route element={<PublicLayout />}>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={ADMIN_APP ? <Navigate to="/app" replace /> : <Landing />} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/e/:eventId" element={<EventPage />} />
             <Route path="/e/:eventId/n/:nomineeId" element={<NomineePage />} />
             <Route path="/e/:eventId/results" element={<PublicResults />} />
             <Route path="/receipt/:ref" element={<Receipt />} />
-            <Route path="/onboard" element={<Onboard />} />
+            {!ADMIN_APP && <Route path="/onboard" element={<Onboard />} />}
           </Route>
           <Route path="/login" element={<Login />} />
+          {LIVE && !ADMIN_APP && <Route path="/signup" element={<Signup />} />}
           <Route path="/reveal/:eventId" element={<Reveal />} />
           <Route
             path="/app"
@@ -103,6 +124,7 @@ export default function App() {
             <Route path="company" element={g('company', <CompanyProfile />)} />
             <Route path="transactions" element={g('transactions', <Transactions />)} />
             <Route path="companies" element={g('companies', <Companies />)} />
+            <Route path="accounts" element={g('accounts', <Accounts />)} />
             <Route path="approvals" element={g('approvals', <Approvals />)} />
             <Route path="withdrawals" element={g('withdrawals', <Withdrawals />)} />
             <Route path="audit" element={g('audit', <Audit />)} />

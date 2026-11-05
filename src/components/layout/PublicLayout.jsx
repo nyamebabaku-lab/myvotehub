@@ -5,6 +5,8 @@ import { useSession } from '../../data/store';
 import { useCurrentUser } from '../../data/selectors';
 import { cx } from '../ui';
 import Logo from './Logo';
+import { LIVE } from '../../config';
+import { useDB } from '../../data/store';
 
 const LINKS = [
   ['/explore', 'Events'],
@@ -15,6 +17,7 @@ const LINKS = [
 export default function PublicLayout() {
   const { dark, toggleDark } = useSession();
   const user = useCurrentUser();
+  const testMode = useDB((s) => s.settings.testMode);
   const [open, setOpen] = useState(false);
   const loc = useLocation();
   useEffect(() => {
@@ -93,7 +96,7 @@ export default function PublicLayout() {
             <Link to="/onboard">Host an event</Link>
             <Link to="/login">Organiser sign in</Link>
           </div>
-          <p className="text-xs text-slate-400">© {new Date().getFullYear()} MyVoteHub · Demo build — payments are simulated</p>
+          <p className="text-xs text-slate-400">© {new Date().getFullYear()} MyVoteHub{!LIVE ? ' · Demo build — payments are simulated' : testMode ? ' · Test mode — no real money is charged' : ''}</p>
         </div>
       </footer>
     </div>
