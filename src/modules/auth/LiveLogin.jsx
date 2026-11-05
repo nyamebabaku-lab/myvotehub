@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, ShieldCheck } from 'lucide-react';
-import { ADMIN_APP } from '../../config';
+import { ADMIN_APP, IS_NATIVE, APK_URL, ADMIN_APK_URL } from '../../config';
 import { signIn, enter, requestAdmin } from '../../lib/accounts';
 import { Button, Field, Input, Tabs, toast } from '../../components/ui';
 import AuthLayout from './AuthLayout';
@@ -54,6 +54,11 @@ export default function LiveLogin() {
           <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">New to MyVoteHub?</p>
           <Link to="/signup"><Button variant="danger" className="mt-3 w-full">Create account</Button></Link>
         </div>
+      )}
+      {!IS_NATIVE && (
+        <a href={ADMIN_APP ? ADMIN_APK_URL : APK_URL} className="mt-6 block text-center text-sm font-bold text-brand-600 hover:underline">
+          Download the {ADMIN_APP ? 'MyVoteHub Admin' : 'MyVoteHub'} app for Android
+        </a>
       )}
       <p className="mt-6 text-center text-xs text-slate-400">Forgot your password? {ADMIN_APP ? 'Ask a Super Admin.' : 'Contact MyVoteHub support.'}</p>
     </AuthLayout>

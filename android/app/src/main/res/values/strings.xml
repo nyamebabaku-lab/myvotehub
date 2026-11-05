@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MyVoteHub</string>
+    <string name="title_activity_main">MyVoteHub</string>
+    <string name="package_name">com.myvotehub.app</string>
+    <string name="custom_url_scheme">com.myvotehub.app</string>
+</resources>

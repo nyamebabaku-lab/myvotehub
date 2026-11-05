@@ -5,7 +5,7 @@ import { useSession } from '../../data/store';
 import { useCurrentUser } from '../../data/selectors';
 import { cx } from '../ui';
 import Logo from './Logo';
-import { LIVE } from '../../config';
+import { LIVE, IS_NATIVE, APK_URL } from '../../config';
 import { useDB } from '../../data/store';
 
 const LINKS = [
@@ -95,6 +95,7 @@ export default function PublicLayout() {
             <Link to="/explore">Events</Link>
             <Link to="/onboard">Host an event</Link>
             <Link to="/login">Organiser sign in</Link>
+            {LIVE && !IS_NATIVE && <a href={APK_URL} className="text-accent-600">Get the Android app</a>}
           </div>
           <p className="text-xs text-slate-400">© {new Date().getFullYear()} MyVoteHub{!LIVE ? ' · Demo build — payments are simulated' : testMode ? ' · Test mode — no real money is charged' : ''}</p>
         </div>
