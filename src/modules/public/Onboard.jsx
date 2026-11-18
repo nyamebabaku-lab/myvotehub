@@ -1,6 +1,6 @@
 // Company onboarding: details → contact person → payout & KYC → review. Creates a pending company the admin verifies.
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Building2, UserRound, Landmark, ClipboardCheck, Check, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useDB, useSession } from '../../data/store';
 import { LIVE } from '../../config';
@@ -132,7 +132,7 @@ export default function Onboard() {
             </div>
             <label className="mt-4 flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
               <input type="checkbox" className="mt-0.5 h-5 w-5 accent-brand-600" checked={f.agree} onChange={set('agree')} />
-              I confirm these details are correct and agree to the organiser terms.
+              <span>I confirm these details are correct and agree to the <Link to="/terms" target="_blank" className="font-bold text-brand-600">terms</Link> and <Link to="/privacy" target="_blank" className="font-bold text-brand-600">privacy policy</Link>.</span>
             </label>
           </div>
         )}

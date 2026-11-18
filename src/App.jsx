@@ -24,6 +24,8 @@ const Login = lazy(() => (LIVE ? import('./modules/auth/LiveLogin') : import('./
 const Signup = lazy(() => import('./modules/auth/Signup'));
 const Accounts = lazy(() => import('./modules/admin/Accounts'));
 const Ussd = lazy(() => import('./modules/admin/Ussd'));
+const Privacy = lazy(() => import('./modules/public/Legal').then((m) => ({ default: m.Privacy })));
+const Terms = lazy(() => import('./modules/public/Legal').then((m) => ({ default: m.Terms })));
 const NomineeDashboard = lazy(() => import('./modules/public/NomineeDashboard'));
 const Dashboard = lazy(() => import('./modules/dashboard/Dashboard'));
 const Events = lazy(() => import('./modules/organiser/Events'));
@@ -103,6 +105,8 @@ export default function App() {
             <Route path="/e/:eventId/n/:nomineeId" element={<NomineePage />} />
             <Route path="/e/:eventId/results" element={<PublicResults />} />
             <Route path="/receipt/:ref" element={<Receipt />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             {!ADMIN_APP && <Route path="/onboard" element={<Onboard />} />}
           </Route>
           <Route path="/login" element={<Login />} />

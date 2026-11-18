@@ -1,10 +1,10 @@
-node_modules
-dist
-*.local
 
+*.local
 build/
+dist
+node_modules
 supabase/.env.local
 supabase/.temp/
 supabase/functions/.env
-tests/live/node_modules
 tests/live/*.png
+tests/live/node_modules

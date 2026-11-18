@@ -1,11 +1,12 @@
 // Every account on the platform: approve, suspend, activate, deactivate or delete.
-import { useState } from 'react';
-import { CheckCircle2, Ban, Power, PowerOff, Trash2, Crown, ShieldCheck, Gavel, Users, Building2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase, must } from '../../lib/supabase';
+import { CheckCircle2, Ban, Power, PowerOff, Trash2, Crown, ShieldCheck, Gavel, Users, Building2, KeyRound, Copy, LifeBuoy, RefreshCw } from 'lucide-react';
 import { useDB } from '../../data/store';
 import { useCurrentUser } from '../../data/selectors';
 import { LIVE } from '../../config';
 import { fmtDateTime } from '../../lib/format';
-import { STATUS, setAccountStatus, deleteAccount, setAdminRole } from '../../lib/accounts';
+import { STATUS, setAccountStatus, deleteAccount, setAdminRole, adminResetPassword, tempPassword } from '../../lib/accounts';
 import { Avatar, Badge, Button, DataTable, EmptyState, Field, IconButton, Modal, PageHeader, StatCard, Tabs, Textarea, confirmDialog, toast } from '../../components/ui';
 
 const ROLE = { admin: ['red', 'Admin', ShieldCheck], organiser: ['blue', 'Organiser', Users], judge: ['violet', 'Judge', Gavel] };
@@ -18,6 +19,21 @@ export default function Accounts() {
   const [tab, setTab] = useState('pending');
   const [role, setRole] = useState('all');
   const [act, setAct] = useState(null); // { user, status, reason }
+  const [reset, setReset] = useState(null); // { user, temp, done }
+  const [help, setHelp] = useState([]);
+  const loadHelp = async () => LIVE && setHelp(must(await supabase.from('password_help').select('*').eq('handled', false).order('created_at', { ascending: false })));
+  useEffect(() => {
+    loadHelp().catch(() => {});
+  }, []);
+  const doReset = async () => {
+    try {
+      await adminResetPassword(reset.user.id, reset.temp);
+      setReset({ ...reset, done: true });
+      loadHelp();
+    } catch (e) {
+      toast.error('Could not reset the password', e.message);
+    }
+  };
   const users = db.users;
   const company = (id) => db.companies.find((c) => c.id === id);
   const canManage = (u) => u.id !== me.id && (u.role !== 'admin' || me.super || !LIVE);
@@ -59,6 +75,7 @@ export default function Accounts() {
         {s !== 'suspended' && s !== 'pending' && <IconButton icon={Ban} label="Suspend" tone="soft-red" onClick={() => setAct({ user: u, status: 'suspended', reason: '' })} />}
         {s === 'pending' && <IconButton icon={Ban} label="Reject (suspend)" tone="soft-red" onClick={() => setAct({ user: u, status: 'suspended', reason: '' })} />}
         {s !== 'deactivated' && <IconButton icon={PowerOff} label="Deactivate" onClick={() => setAct({ user: u, status: 'deactivated', reason: '' })} />}
+        {LIVE && <IconButton icon={KeyRound} label="Reset password" onClick={() => setReset({ user: u, temp: tempPassword(), done: false })} />}
         {u.role === 'admin' && me.super && <IconButton icon={Crown} label={u.super ? 'Remove Super Admin' : 'Make Super Admin'} onClick={() => toggleSuper(u)} />}
         <IconButton icon={Trash2} label="Delete" onClick={() => remove(u)} />
       </div>
@@ -68,6 +85,22 @@ export default function Accounts() {
   return (
     <>
       <PageHeader title="Accounts" subtitle="Every organiser, team member, judge and admin needs approval before they can use MyVoteHub." />
+      {help.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
+          <p className="flex items-center gap-2 font-bold"><LifeBuoy className="h-4 w-4" /> {help.length} {help.length === 1 ? 'person needs' : 'people need'} password help</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {help.map((h) => {
+              const u = users.find((x) => x.email?.toLowerCase() === h.email);
+              return (
+                <button key={h.id} onClick={() => u && setReset({ user: u, temp: tempPassword(), done: false })} className="rounded-xl bg-white px-3 py-1.5 font-semibold text-slate-700 shadow-sm hover:bg-amber-100 dark:bg-white/10 dark:text-white">
+                  {u?.name || h.email} · {fmtDateTime(h.created_at)}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs">Check it’s really them (call or WhatsApp), then set a temporary password. They choose a new one when they sign in.</p>
+        </div>
+      )}
       <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatCard label="Waiting for approval" value={count('pending')} icon={CheckCircle2} tone="amber" onClick={() => setTab('pending')} />
         <StatCard label="Active" value={count('active')} icon={Power} tone="green" onClick={() => setTab('active')} />
@@ -92,6 +125,25 @@ export default function Accounts() {
           { key: 'x', label: '', nosort: true, className: 'text-right', render: actions },
         ]}
       />
+      <Modal
+        open={!!reset}
+        onClose={() => setReset(null)}
+        title={reset && (reset.done ? 'Temporary password set' : `Reset ${reset.user.name}'s password?`)}
+        subtitle={reset?.user.email}
+        size="sm"
+        footer={reset && (reset.done ? <Button onClick={() => setReset(null)}>Done</Button> : <><Button variant="secondary" onClick={() => setReset(null)}>Cancel</Button><Button icon={KeyRound} onClick={doReset}>Set temporary password</Button></>)}
+      >
+        {reset && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 rounded-2xl bg-slate-50 p-3 dark:bg-white/5">
+              <code className="flex-1 text-center font-mono text-xl font-black tracking-wider">{reset.temp}</code>
+              {!reset.done && <IconButton icon={RefreshCw} label="New suggestion" onClick={() => setReset({ ...reset, temp: tempPassword() })} />}
+              <IconButton icon={Copy} label="Copy" onClick={() => navigator.clipboard?.writeText(reset.temp).then(() => toast.success('Copied'))} />
+            </div>
+            <p className="text-sm text-slate-500">{reset.done ? 'Send this to the user privately (call, SMS or WhatsApp). They must choose a new password as soon as they sign in with it.' : 'Their current password stops working. Only do this after confirming it’s really them.'}</p>
+          </div>
+        )}
+      </Modal>
       <Modal
         open={!!act}
         onClose={() => setAct(null)}

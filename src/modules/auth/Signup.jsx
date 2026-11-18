@@ -68,7 +68,7 @@ function Join({ onBack }) {
         <Field label="Confirm"><Input type="password" required value={f.confirm} onChange={set('confirm')} autoComplete="new-password" /></Field>
       </div>
       <Button type="submit" size="lg" variant="danger" className="w-full" disabled={busy}>{busy ? 'Please wait…' : 'Create account'}</Button>
-      <p className="text-center text-xs text-slate-500">MyVoteHub approves every new account before you can sign in to your dashboard.</p>
+      <p className="text-center text-xs text-slate-500">MyVoteHub approves every new account before you can sign in to your dashboard. By creating an account you agree to the <Link to="/terms" className="font-bold text-brand-600">terms</Link> and <Link to="/privacy" className="font-bold text-brand-600">privacy policy</Link>.</p>
     </form>
   );
 }

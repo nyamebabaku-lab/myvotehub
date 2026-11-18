@@ -4,7 +4,9 @@ import { PGlite } from '@electric-sql/pglite';
 import { readFileSync, readdirSync } from 'fs';
 const M = new URL('../../supabase/migrations/', import.meta.url).pathname;
 const db = new PGlite();
-await db.exec(`create schema auth; create table auth.users (id uuid primary key, email text);
+await db.exec(`create schema auth; create table auth.users (id uuid primary key, email text, encrypted_password text, updated_at timestamptz);
+create schema extensions; create function extensions.gen_salt(text) returns text language sql as $$ select '$2a$10$salt' $$;
+create function extensions.crypt(text, text) returns text language sql as $$ select $2 || md5($1) $$;
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.uid', true), '')::uuid $$;
 create function auth.email() returns text language sql stable as $$ select nullif(current_setting('request.email', true), '') $$;
 create publication supabase_realtime; create role anon; create role authenticated;`);
@@ -16,7 +18,7 @@ await db.exec(`grant usage on schema public, auth to anon, authenticated; grant 
 grant usage on all sequences in schema public to anon, authenticated; grant execute on all functions in schema auth to anon, authenticated;`);
 const U = { S: '00000000-0000-0000-0000-00000000000a', O: '00000000-0000-0000-0000-00000000000b', J: '00000000-0000-0000-0000-00000000000c', X: '00000000-0000-0000-0000-00000000000d', A: '00000000-0000-0000-0000-00000000000e' };
 const EM = { S: 'nyamebabaku@gmail.com', O: 'o@co.com', J: 'j@co.com', X: 'x@x.com', A: 'a@hq.com' };
-for (const k in U) await db.query(`insert into auth.users values ($1, $2)`, [U[k], EM[k]]);
+for (const k in U) await db.query(`insert into auth.users (id, email) values ($1, $2)`, [U[k], EM[k]]);
 const EV = '20000000-0000-0000-0000-000000000001', CAT = '30000000-0000-0000-0000-000000000001', NOM = '40000000-0000-0000-0000-000000000001';
 let pass = 0, fail = 0;
 async function as(who, sql) {
@@ -97,6 +99,20 @@ await as('A', `select set_account_status('${U.O}', 'suspended', 'test')`);
 ok((await rows('O', `select * from payments`)).length === 0, 'suspended organiser sees no payments');
 await throws('O', `insert into categories (event_id, name, code) values ('${EV}','D','DDD')`, 'suspended organiser cannot edit');
 await throws('O', `select nominee_link('${NOM}')`, 'suspended organiser cannot get nominee links');
+
+// Password help
+await as(null, `select request_password_help('o@co.com')`);
+ok((await rows('S', `select * from password_help`)).length === 1 && (await rows('O', `select * from password_help`)).length === 0, 'anon can ask for password help; only admins read the requests');
+await as(null, `select request_password_help('nobody@x.com')`);
+ok((await rows('S', `select * from password_help`)).length === 1, 'unknown emails are silently ignored');
+await throws('O', `select admin_reset_password('${U.A}', 'temppass123')`, 'organisers cannot reset passwords');
+await throws('A', `select admin_reset_password('${U.S}', 'temppass123')`, 'normal admin cannot reset a Super Admin');
+await throws('S', `select admin_reset_password('${U.O}', 'short')`, 'temporary password needs 8+ characters');
+await as('S', `select admin_reset_password('${U.O}', 'temppass123')`);
+const pw = (await db.query(`select encrypted_password from auth.users where id='${U.O}'`)).rows[0].encrypted_password;
+ok(pw?.startsWith('$2a$') && (await rows('S', `select must_change_password m from profiles where id='${U.O}'`))[0].m === true && (await rows('S', `select handled from password_help`))[0].handled, 'admin reset stores a bcrypt hash, forces a change, closes the request');
+await as('O', `select password_changed()`);
+ok((await rows('S', `select must_change_password m from profiles where id='${U.O}'`))[0].m === false, 'user clears the flag after changing password');
 await throws('S', `select delete_account('${U.S}')`, 'cannot delete yourself');
 await as('S', `select delete_account('${U.J}')`);
 ok((await db.query(`select 1 from profiles where id='${U.J}' union all select 1 from auth.users where id='${U.J}'`)).rows.length === 0, 'deleted account is gone');

@@ -6,12 +6,14 @@ import { ADMIN_APP, IS_NATIVE, APK_URL, ADMIN_APK_URL } from '../../config';
 import { signIn, enter, requestAdmin } from '../../lib/accounts';
 import { Button, Field, Input, Tabs, toast } from '../../components/ui';
 import AuthLayout from './AuthLayout';
+import { ForgotPasswordModal } from '../../components/PasswordForms';
 
 export default function LiveLogin() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('in');
   const [f, setF] = useState({ email: '', password: '', name: '', confirm: '' });
   const [busy, setBusy] = useState(false);
+  const [forgot, setForgot] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   const run = async (fn) => {
@@ -60,7 +62,10 @@ export default function LiveLogin() {
           Download the {ADMIN_APP ? 'MyVoteHub Admin' : 'MyVoteHub'} app for Android
         </a>
       )}
-      <p className="mt-6 text-center text-xs text-slate-400">Forgot your password? {ADMIN_APP ? 'Ask a Super Admin.' : 'Contact MyVoteHub support.'}</p>
+      {tab === 'in' && (
+        <button type="button" onClick={() => setForgot(true)} className="mt-6 block w-full text-center text-sm font-bold text-slate-500 hover:text-brand-600">Forgot your password?</button>
+      )}
+      <ForgotPasswordModal open={forgot} onClose={() => setForgot(false)} email={f.email} onSignedIn={async (p) => { await enter(p); navigate('/app'); }} />
     </AuthLayout>
   );
 }

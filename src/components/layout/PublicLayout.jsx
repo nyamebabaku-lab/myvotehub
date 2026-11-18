@@ -95,6 +95,8 @@ export default function PublicLayout() {
             <Link to="/explore">Events</Link>
             <Link to="/onboard">Host an event</Link>
             <Link to="/login">Organiser sign in</Link>
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
             {LIVE && !IS_NATIVE && <a href={APK_URL} className="text-accent-600">Get the Android app</a>}
           </div>
           <p className="text-xs text-slate-400">© {new Date().getFullYear()} MyVoteHub{!LIVE ? ' · Demo build — payments are simulated' : testMode ? ' · Test mode — no real money is charged' : ''}</p>

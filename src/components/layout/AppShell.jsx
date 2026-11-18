@@ -1,6 +1,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Moon, Sun, Bell, LogOut, Menu, X, ChevronsLeft, ChevronsRight, Repeat, ChevronDown, Loader2, Globe } from 'lucide-react';
+import { Moon, Sun, Bell, LogOut, Menu, X, ChevronsLeft, ChevronsRight, Repeat, ChevronDown, Loader2, Globe, KeyRound } from 'lucide-react';
+import { ChangePasswordModal } from '../PasswordForms';
 import { useDB, useSession } from '../../data/store';
 import { useCurrentUser, notificationsFor } from '../../data/selectors';
 import { navFor, navItem, MOBILE_TABS, ROLES } from '../../lib/nav';
@@ -56,6 +57,7 @@ export default function AppShell() {
   const notifications = useDB((s) => s.notifications);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
   const loc = useLocation();
   const navigate = useNavigate();
 
@@ -148,6 +150,11 @@ export default function AppShell() {
                       <Link to={ADMIN_APP ? PUBLIC_SITE : '/explore'} target={ADMIN_APP ? '_blank' : undefined} className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5 md:hidden">
                         <Globe className="h-4 w-4" /> Public site
                       </Link>
+                      {LIVE && (
+                        <button onClick={() => { setMenuOpen(false); setPwOpen(true); }} className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5">
+                          <KeyRound className="h-4 w-4" /> Change password
+                        </button>
+                      )}
                       <button onClick={signOut} className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5">
                         <Repeat className="h-4 w-4" /> Switch account
                       </button>
@@ -183,6 +190,7 @@ export default function AppShell() {
           </button>
         </div>
       </nav>
+      {LIVE && <ChangePasswordModal open={pwOpen} onClose={() => setPwOpen(false)} />}
     </div>
   );
 }

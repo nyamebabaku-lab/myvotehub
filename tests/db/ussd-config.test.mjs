@@ -3,7 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { readFileSync, readdirSync } from 'fs';
 const M = new URL('../../supabase/migrations/', import.meta.url).pathname;
 const db = new PGlite();
-await db.exec(`create schema auth; create table auth.users (id uuid primary key, email text);
+await db.exec(`create schema auth; create table auth.users (id uuid primary key, email text, encrypted_password text, updated_at timestamptz);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.uid', true), '')::uuid $$;
 create function auth.email() returns text language sql stable as $$ select nullif(current_setting('request.email', true), '') $$;
 create publication supabase_realtime; create role anon; create role authenticated;`);

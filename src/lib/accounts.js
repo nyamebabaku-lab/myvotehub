@@ -85,8 +85,33 @@ export async function signOut() {
 }
 
 export async function changePassword(next) {
-  if (next.length < 6) throw new Error('Use at least 6 characters');
+  if (next.length < 8) throw new Error('Use at least 8 characters');
   must(await supabase.auth.updateUser({ password: next }));
+  must(await supabase.rpc('password_changed'));
+}
+
+// ---------------------------------------------------------------- forgot password
+/** Emails a recovery code (needs the project's email sender to be set up). */
+export async function sendResetCode(email) {
+  must(await supabase.auth.resetPasswordForEmail(clean(email)));
+}
+
+/** Checks the emailed code, signs the user in and sets their new password. */
+export async function resetWithCode(email, code, next) {
+  if (next.length < 8) throw new Error('Use at least 8 characters');
+  must(await supabase.auth.verifyOtp({ email: clean(email), token: code.trim(), type: 'recovery' }));
+  await changePassword(next);
+  return fetchProfile();
+}
+
+/** For people who can't get the email: MyVoteHub admins are notified and can set a temporary password. */
+export const requestPasswordHelp = async (email) => must(await supabase.rpc('request_password_help', { addr: clean(email) }));
+
+/** A readable temporary password, e.g. "Vote-7K3P-92". */
+export function tempPassword() {
+  const abc = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const pick = (n) => Array.from(crypto.getRandomValues(new Uint32Array(n)), (x) => abc[x % abc.length]).join('');
+  return `Vote-${pick(4)}-${pick(2)}`;
 }
 
 // ---------------------------------------------------------------- Admin app
@@ -99,5 +124,6 @@ export const setAccountStatus = (id, status, reason) => after(supabase.rpc('set_
 export const setCompanyStatus = (id, status, reason) => after(supabase.rpc('set_company_status', { cid: id, new_status: status, reason: reason || null }));
 export const deleteAccount = (id) => after(supabase.rpc('delete_account', { target: id }));
 export const setAdminRole = (id, makeSuper) => after(supabase.rpc('set_admin_role', { target: id, make_super: makeSuper }));
+export const adminResetPassword = (id, temp) => after(supabase.rpc('admin_reset_password', { target: id, temp_password: temp }));
 export const setTestMode = (flag) => after(supabase.rpc('set_test_mode', { flag }));
 export const clearTestData = () => after(supabase.rpc('clear_test_data'));
