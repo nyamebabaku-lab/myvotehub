@@ -14,7 +14,7 @@ delete from auth.users where email like 'e2e-%@example.com';
 delete from companies where name like 'E2E Events %';
 delete from ussd_sessions where id like 'gen:%' or id like 'at:e2e-%' or id like 'at:t-%' or id like 'ark:t-%' or id like 'hub:t-%' or id like 'sim:%';
 delete from otp_codes;
-update settings set ussd_code = null;
+update settings set ussd_code = null, ussd_config = '{}' where id;
 select (select count(*) from auth.users)::int users, (select count(*) from companies)::int companies, (select count(*) from events)::int events, (select count(*) from votes)::int votes, (select count(*) from sms_log)::int sms;`;
 const r = await fetch('https://api.supabase.com/v1/projects/jepkzvunetajsgscoelv/database/query', { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ query: q }) });
 console.log(JSON.stringify(await r.json()));

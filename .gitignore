@@ -6,3 +6,5 @@ build/
 supabase/.env.local
 supabase/.temp/
 supabase/functions/.env
+tests/live/node_modules
+tests/live/*.png

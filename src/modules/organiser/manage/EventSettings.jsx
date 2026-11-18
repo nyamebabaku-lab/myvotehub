@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { Pencil, Trash2, Eye, Hash } from 'lucide-react';
 import { useDB } from '../../../data/store';
 import { useCurrentUser, useUssdCode } from '../../../data/selectors';
+import { LIVE } from '../../../config';
+import UssdCard from './UssdCard';
 import { money } from '../../../lib/format';
 import { Button, Card, CardHeader, KeyValue, confirmDialog, toast, cx } from '../../../components/ui';
 
@@ -61,6 +63,7 @@ export default function EventSettings({ event }) {
           />
         </div>
       </Card>
+      {LIVE && <UssdCard event={event} />}
       <Card className="border-accent-200 xl:col-span-2 dark:border-accent-500/20">
         <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
           <div className="flex-1">

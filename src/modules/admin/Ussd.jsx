@@ -9,6 +9,7 @@ import { supabase, must } from '../../lib/supabase';
 import { refresh } from '../../data/sync';
 import { fmtDateTime } from '../../lib/format';
 import { Badge, Button, Card, CardHeader, EmptyState, Field, Input, PageHeader, StatCard, cx, toast } from '../../components/ui';
+import { MenuEditor, UssdEvents } from './UssdMenuEditor';
 
 const ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL || 'https://<project>.supabase.co'}/functions/v1/ussd`;
 const PROVIDERS = [
@@ -189,6 +190,10 @@ export default function Ussd() {
             </div>
           </Card>
         </div>
+      </div>
+      <div className="mt-6 grid gap-6">
+        <MenuEditor />
+        <UssdEvents />
       </div>
     </>
   );

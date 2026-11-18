@@ -9,7 +9,8 @@ export const TABLES = {
   events: {
     table: 'events',
     rename: { image: 'image_url' },
-    fields: ['companyId', 'title', 'type', 'tagline', 'description', 'venue', 'cover', 'image', 'startAt', 'endAt', 'status', 'reviewNote', 'submittedAt', 'reviewedAt', 'votingMode', 'pricePerVote', 'bundles', 'freeVotesPerVoter', 'freePeriod', 'publicWeight', 'judgeWeight', 'criteria', 'showLeaderboard', 'showCounts', 'rounds', 'resultsReleased', 'releasedAt'],
+    fields: ['companyId', 'title', 'type', 'tagline', 'description', 'venue', 'cover', 'image', 'startAt', 'endAt', 'status', 'reviewNote', 'submittedAt', 'reviewedAt', 'votingMode', 'pricePerVote', 'bundles', 'freeVotesPerVoter', 'freePeriod', 'publicWeight', 'judgeWeight', 'criteria', 'showLeaderboard', 'showCounts', 'rounds', 'resultsReleased', 'releasedAt',
+      'ussdEnabled', 'ussdBundles', 'ussdOtherAmount', 'ussdGreeting', 'ussdFeatured', 'ussdHidden'],
   },
   categories: { table: 'categories', rename: { order: 'sort' }, fields: ['eventId', 'name', 'code', 'description', 'order'] },
   nominees: { table: 'nominees', rename: { photo: 'photo_url' }, fields: ['eventId', 'categoryId', 'name', 'code', 'bio', 'photo', 'status', 'evictedRound'] },
@@ -49,7 +50,7 @@ export function fromRow(col, row) {
 export const settingsFromRow = (r) => ({
   platformName: r.platform_name, currency: r.currency, defaultCommission: Number(r.default_commission), minWithdrawal: Number(r.min_withdrawal),
   requireEventApproval: r.require_event_approval, maxVotesPerMinute: r.max_votes_per_minute, supportEmail: r.support_email, supportPhone: r.support_phone,
-  testMode: r.test_mode, reservedAdminEmail: r.reserved_admin_email, ussdCode: r.ussd_code || '', smsMode: r.sms_mode,
+  testMode: r.test_mode, reservedAdminEmail: r.reserved_admin_email, ussdCode: r.ussd_code || '', smsMode: r.sms_mode, ussdConfig: r.ussd_config || {},
 });
 export const settingsToRow = (s) => ({
   platform_name: s.platformName, currency: s.currency, default_commission: s.defaultCommission, min_withdrawal: s.minWithdrawal,
