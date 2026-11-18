@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, UserX, Undo2, ListPlus } from 'lucide-react';
+import { Plus, Pencil, Trash2, UserX, Undo2, ListPlus, LineChart } from 'lucide-react';
+import { LIVE } from '../../../config';
+import NomineeLink from '../../../components/NomineeLink';
 import { useDB } from '../../../data/store';
 import { useTally } from '../../../data/selectors';
 import { categoryCode, nextNomineeCode } from '../../../lib/events';
@@ -16,6 +18,7 @@ export default function Nominees({ event }) {
   const [catEdit, setCatEdit] = useState(null);
   const [bulk, setBulk] = useState(null);
   const [evicting, setEvicting] = useState(null);
+  const [linkFor, setLinkFor] = useState(null);
   const hasVotes = (pred) => db.votes.some((v) => v.eventId === event.id && pred(v));
 
   const saveCat = () => {
@@ -88,6 +91,7 @@ export default function Nominees({ event }) {
                   </div>
                   {n.status === 'evicted' && <Badge tone="red">Evicted{n.evictedRound ? ` · R${n.evictedRound}` : ''}</Badge>}
                   <div className="flex items-center">
+                    {LIVE && <IconButton icon={LineChart} label="Nominee dashboard link" onClick={() => setLinkFor(n)} />}
                     <IconButton icon={Pencil} label="Edit" onClick={() => setEdit({ ...n })} />
                     {n.status === 'evicted' ? (
                       <IconButton icon={Undo2} label="Reinstate" onClick={async () => (await confirmDialog(`Reinstate ${n.name}?`, 'They return to the competition.', { danger: false, confirmLabel: 'Reinstate' })) && reinstate(event, n)} />
@@ -105,6 +109,7 @@ export default function Nominees({ event }) {
       })}
       {!cats.length && <Card><EmptyState title="No categories" text="Add a category, then its nominees." action={<Button icon={Plus} onClick={() => setCatEdit({ name: '' })}>Add category</Button>} /></Card>}
 
+      {LIVE && <NomineeLink nominee={linkFor} onClose={() => setLinkFor(null)} />}
       <Modal open={!!edit} onClose={() => setEdit(null)} title={edit?.id ? 'Edit nominee' : 'Add nominee'} footer={<><Button variant="secondary" onClick={() => setEdit(null)}>Cancel</Button><Button onClick={saveNom}>Save</Button></>}>
         {edit && (
           <div className="space-y-4">

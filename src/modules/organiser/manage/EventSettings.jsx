@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Pencil, Trash2, Eye, Hash } from 'lucide-react';
 import { useDB } from '../../../data/store';
-import { useCurrentUser } from '../../../data/selectors';
+import { useCurrentUser, useUssdCode } from '../../../data/selectors';
 import { money } from '../../../lib/format';
 import { Button, Card, CardHeader, KeyValue, confirmDialog, toast, cx } from '../../../components/ui';
 
@@ -24,6 +24,7 @@ export default function EventSettings({ event }) {
   const user = useCurrentUser();
   const navigate = useNavigate();
   const company = db.companies.find((c) => c.id === event.companyId);
+  const ussd = useUssdCode();
   const hasVotes = db.votes.some((v) => v.eventId === event.id);
   const set = (patch) => {
     db.update('events', event.id, patch);
@@ -55,7 +56,7 @@ export default function EventSettings({ event }) {
               ['Weighting', `${event.publicWeight}% public / ${event.judgeWeight}% judges`],
               ['Platform commission', `${company?.commissionPct}%`],
               ['Event ID', event.id],
-              ['USSD short code', '*920*44#'],
+              ['USSD code', ussd || 'Not set up yet'],
             ]}
           />
         </div>

@@ -5,3 +5,4 @@ dist
 build/
 supabase/.env.local
 supabase/.temp/
+supabase/functions/.env

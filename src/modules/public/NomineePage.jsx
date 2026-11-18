@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Share2, Smartphone, Trophy, Hash, Download } from 'lucide-react';
 import { useDB } from '../../data/store';
-import { useTally } from '../../data/selectors';
+import { useTally, useUssdCode } from '../../data/selectors';
 import { compactNum } from '../../lib/format';
 import { eventPhase, isPublic } from '../../lib/voting';
 import { shareLink, publicUrl } from '../../lib/share';
@@ -16,8 +17,10 @@ export default function NomineePage() {
   const event = useDB((s) => s.events.find((e) => e.id === eventId));
   const nominee = useDB((s) => s.nominees.find((n) => n.id === nomineeId));
   const category = useDB((s) => s.categories.find((c) => c.id === nominee?.categoryId));
-  const peers = useDB((s) => s.nominees.filter((n) => n.categoryId === nominee?.categoryId));
+  // useShallow: a fresh array on every store change would otherwise re-render forever.
+  const peers = useDB(useShallow((s) => s.nominees.filter((n) => n.categoryId === nominee?.categoryId)));
   const tally = useTally(event);
+  const ussd = useUssdCode();
   const [open, setOpen] = useState(false);
   if (!event || !nominee || !isPublic(event)) return <EmptyState title="Nominee not found" />;
 
@@ -106,14 +109,16 @@ export default function NomineePage() {
             </Cover>
           </div>
           <Button variant="soft" className="w-full" icon={Download} onClick={saveCard}>Save QR code</Button>
+          {ussd && (
           <div className="card p-5">
             <h3 className="flex items-center gap-2 font-extrabold text-slate-900 dark:text-white"><Smartphone className="h-4 w-4 text-brand-600" /> Vote without data</h3>
             <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-slate-600 dark:text-slate-300">
-              <li>Dial <b>*920*44#</b></li>
+              <li>Dial <b>{ussd}</b> and choose <b>1. Vote with nominee code</b></li>
               <li>Enter code <b className="font-mono">{nominee.code}</b></li>
-              <li>Choose votes and approve on MoMo</li>
+              <li>{event.votingMode === 'free' ? 'Choose 1 to cast your free vote' : 'Choose your votes and approve on MoMo'}</li>
             </ol>
           </div>
+          )}
           <Link to={`/e/${event.id}/results`}>
             <Button variant="secondary" className="mt-1 w-full" icon={Trophy}>See the leaderboard</Button>
           </Link>

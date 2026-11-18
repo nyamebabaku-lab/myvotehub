@@ -1,4 +1,4 @@
-import { UserCheck, LayoutDashboard, Building2, CalendarCheck2, CalendarRange, Wallet, Receipt, ScrollText, Settings, Users, Gavel, Bell, ShieldCheck } from 'lucide-react';
+import { RadioTower, UserCheck, LayoutDashboard, Building2, CalendarCheck2, CalendarRange, Wallet, Receipt, ScrollText, Settings, Users, Gavel, Bell, ShieldCheck } from 'lucide-react';
 
 export const ROLES = {
   admin: { label: 'Super Admin' },
@@ -20,6 +20,7 @@ const NAV = {
       { key: 'transactions', label: 'Transactions', path: '/app/transactions', icon: Receipt },
     ] },
     { group: 'System', items: [
+      { key: 'ussd', label: 'USSD voting', path: '/app/ussd', icon: RadioTower },
       { key: 'notifications', label: 'Notifications', path: '/app/notifications', icon: Bell },
       { key: 'audit', label: 'Audit log', path: '/app/audit', icon: ScrollText },
       { key: 'settings', label: 'Settings', path: '/app/settings', icon: Settings },

@@ -1,6 +1,10 @@
 import { useMemo } from 'react';
 import { useDB, useSession, publicVotes } from './store';
 import { countableVotes } from '../lib/results';
+import { LIVE } from '../config';
+
+/** The USSD code voters dial (set by the Super Admin; the demo shows an example). Empty until one is set. */
+export const useUssdCode = () => useDB((s) => (LIVE ? s.settings.ussdCode : '*920*44#'));
 
 export function useCurrentUser() {
   const id = useSession((s) => s.userId);

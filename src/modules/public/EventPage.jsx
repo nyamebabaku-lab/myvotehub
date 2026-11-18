@@ -11,7 +11,7 @@ import { Cover, Countdown, NomineePhoto, PhaseBadge, TYPE } from '../../componen
 import { QRCode } from '../../components/QR';
 import VoteSheet from './VoteSheet';
 import NomineeCard from '../../components/NomineeCard';
-import { useTally } from '../../data/selectors';
+import { useTally, useUssdCode } from '../../data/selectors';
 
 export default function EventPage() {
   const { eventId } = useParams();
@@ -20,6 +20,7 @@ export default function EventPage() {
   const allCats = useDB((s) => s.categories);
   const allNoms = useDB((s) => s.nominees);
   const tally = useTally(event);
+  const ussd = useUssdCode();
   const [catId, setCatId] = useState('all');
   const [q, setQ] = useState('');
   const [voting, setVoting] = useState(null);
@@ -124,9 +125,11 @@ export default function EventPage() {
                   <li className="flex justify-between"><span className="flex items-center gap-1 text-slate-500"><UserX className="h-3.5 w-3.5" /> Evictions</span><span className="font-bold">{event.rounds.autoEvict} per week</span></li>
                 )}
               </ul>
-              <p className="mt-4 rounded-xl bg-slate-50 p-3 text-xs text-slate-500 dark:bg-white/5">
-                No data? Dial <span className="font-bold text-slate-700 dark:text-slate-200">*920*44#</span> and enter the nominee code to vote by USSD.
-              </p>
+              {ussd && (
+                <p className="mt-4 rounded-xl bg-slate-50 p-3 text-xs text-slate-500 dark:bg-white/5">
+                  No data? Dial <span className="font-bold text-slate-700 dark:text-slate-200">{ussd}</span> and enter the nominee code to vote by USSD.
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Button variant="secondary" icon={Share2} onClick={() => shareLink(url, event.title)}>Share</Button>

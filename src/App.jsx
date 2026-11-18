@@ -23,6 +23,8 @@ const Onboard = lazy(() => import('./modules/public/Onboard'));
 const Login = lazy(() => (LIVE ? import('./modules/auth/LiveLogin') : import('./modules/auth/Login')));
 const Signup = lazy(() => import('./modules/auth/Signup'));
 const Accounts = lazy(() => import('./modules/admin/Accounts'));
+const Ussd = lazy(() => import('./modules/admin/Ussd'));
+const NomineeDashboard = lazy(() => import('./modules/public/NomineeDashboard'));
 const Dashboard = lazy(() => import('./modules/dashboard/Dashboard'));
 const Events = lazy(() => import('./modules/organiser/Events'));
 const EventWizard = lazy(() => import('./modules/organiser/EventWizard'));
@@ -106,6 +108,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           {LIVE && !ADMIN_APP && <Route path="/signup" element={<Signup />} />}
           <Route path="/reveal/:eventId" element={<Reveal />} />
+          {LIVE && <Route path="/me/:token" element={<NomineeDashboard />} />}
           <Route
             path="/app"
             element={
@@ -125,6 +128,7 @@ export default function App() {
             <Route path="transactions" element={g('transactions', <Transactions />)} />
             <Route path="companies" element={g('companies', <Companies />)} />
             <Route path="accounts" element={g('accounts', <Accounts />)} />
+            <Route path="ussd" element={g('ussd', <Ussd />)} />
             <Route path="approvals" element={g('approvals', <Approvals />)} />
             <Route path="withdrawals" element={g('withdrawals', <Withdrawals />)} />
             <Route path="audit" element={g('audit', <Audit />)} />
