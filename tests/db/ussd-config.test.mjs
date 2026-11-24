@@ -6,7 +6,7 @@ const db = new PGlite();
 await db.exec(`create schema auth; create table auth.users (id uuid primary key, email text, encrypted_password text, updated_at timestamptz);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.uid', true), '')::uuid $$;
 create function auth.email() returns text language sql stable as $$ select nullif(current_setting('request.email', true), '') $$;
-create publication supabase_realtime; create role anon; create role authenticated;`);
+create publication supabase_realtime; create role anon; create role authenticated; create role service_role;`);
 for (const f of readdirSync(M).filter((x) => x.endsWith('.sql')).sort()) {
   try { await db.exec(readFileSync(M + f, 'utf8').replace('create extension if not exists pgcrypto;', '')); }
   catch (e) { console.log('MIGRATION ERROR', f, e.message); process.exit(1); }

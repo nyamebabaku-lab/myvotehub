@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { LIVE } from '../../config';
-import { liveReceipt } from '../../lib/liveVoting';
-import { CheckCircle2, Printer, XCircle } from 'lucide-react';
+import { liveReceipt, waitForPayment } from '../../lib/liveVoting';
+import { CheckCircle2, Clock, Printer, XCircle } from 'lucide-react';
 import { useDB } from '../../data/store';
 import { fmtDateTime, money } from '../../lib/format';
 import { methodLabel } from '../../lib/payments';
@@ -14,7 +14,16 @@ export default function Receipt() {
   const local = useDB((s) => s.payments.find((p) => p.ref === ref));
   const [remote, setRemote] = useState(LIVE ? undefined : null);
   useEffect(() => {
-    if (LIVE) liveReceipt(ref).then((r) => setRemote(r && { ...r, at: r.created_at, eventId: r.event_id, nomineeId: r.nominee_id, amount: Number(r.amount), isTest: r.is_test })).catch(() => setRemote(null));
+    if (!LIVE) return undefined;
+    let stop = false;
+    const load = () => liveReceipt(ref).then((r) => {
+      if (stop) return;
+      setRemote(r && { ...r, at: r.created_at, eventId: r.event_id, nomineeId: r.nominee_id, amount: Number(r.amount), isTest: r.is_test });
+      // A payment still being confirmed (e.g. back from the card page): check with the provider until it settles.
+      if (r?.status === 'pending') waitForPayment(ref, { signal: { get aborted() { return stop; } } }).then(() => !stop && load());
+    }).catch(() => !stop && setRemote(null));
+    load();
+    return () => { stop = true; };
   }, [ref]);
   const pay = LIVE ? remote : local;
   const event = useDB((s) => s.events.find((e) => e.id === pay?.eventId));
@@ -22,20 +31,21 @@ export default function Receipt() {
   if (pay === undefined) return null;
   if (!pay) return <EmptyState title="Receipt not found" text={`No payment with reference ${ref}.`} />;
   const ok = pay.status === 'success';
+  const waiting = pay.status === 'pending';
   const mask = (v) => (v.includes('@') || v.startsWith('card') ? v : `${v.slice(0, 3)}****${v.slice(-3)}`);
   return (
     <div className="mx-auto max-w-lg px-4 py-10">
       <div className="card print-area overflow-hidden">
         <div className="flex items-center justify-between border-b border-dashed border-slate-200 p-6 dark:border-white/10">
           <Logo />
-          {ok ? <CheckCircle2 className="h-8 w-8 text-emerald-500" /> : <XCircle className="h-8 w-8 text-accent-600" />}
+          {ok ? <CheckCircle2 className="h-8 w-8 text-emerald-500" /> : waiting ? <Clock className="h-8 w-8 animate-pulse text-brand-600" /> : <XCircle className="h-8 w-8 text-accent-600" />}
         </div>
         <div className="p-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{ok ? 'Payment receipt' : 'Failed payment'}{pay.isTest && ' · TEST — no real money'}</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{ok ? 'Payment receipt' : waiting ? 'Confirming payment…' : 'Failed payment'}{pay.isTest && ' · TEST — no real money'}</p>
           <p className="mt-1 text-4xl font-extrabold text-slate-900 dark:text-white">{money(pay.amount)}</p>
           <p className="mt-1 text-sm text-slate-500">{pay.votes} vote{pay.votes > 1 && 's'} for <b className="text-slate-700 dark:text-slate-200">{nominee?.name}</b></p>
           <div className="mt-6">
-            <KeyValue items={[['Reference', <span key="r" className="font-mono">{pay.ref}</span>], ['Date', fmtDateTime(pay.at)], ['Event', event?.title], ['Nominee code', nominee?.code], ['Paid with', methodLabel(pay.method)], ['Account', mask(pay.voter)], ['Status', ok ? 'Successful' : 'Failed']]} />
+            <KeyValue items={[['Reference', <span key="r" className="font-mono">{pay.ref}</span>], ['Date', fmtDateTime(pay.at)], ['Event', event?.title], ['Nominee code', nominee?.code], ['Paid with', methodLabel(pay.method)], ['Account', mask(pay.voter)], ['Status', ok ? 'Successful' : waiting ? 'Waiting for confirmation' : 'Failed']]} />
           </div>
         </div>
       </div>

@@ -21,7 +21,8 @@ export const USSD_TEXTS = [
     ['free_option', 'Free vote option', 'Cast my free vote'],
     ['other_amount', 'Other amount option', 'Other amount'],
     ['confirm', 'Confirm payment', 'Pay {amount} for {qty} votes for {name}?'],
-    ['done_paid', 'After a paid vote', '{qty} votes for {name} added.'],
+    ['done_paid', 'After a paid vote (test mode)', '{qty} votes for {name} added.'],
+    ['pay_prompt', 'After a paid vote (live: MoMo prompt follows)', 'Approve the MoMo prompt on your phone to pay {amount} for {qty} votes for {name}.'],
     ['done_free', 'After a free vote', 'Thank you! Your free vote for {name} is counted.'],
   ] },
   { group: 'Check votes', items: [

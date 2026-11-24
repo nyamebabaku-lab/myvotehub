@@ -1,0 +1,201 @@
+<title>MyVoteHub Brief</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: single reading column, product brief; blue identity, red reserved for "not live yet" and key flags */
+:root {
+  --bg: #ffffff; --surface: #f3f6fd; --line: #dfe6f5; --fg: #111a2e; --muted: #56617a;
+  --blue: #2556eb; --blue-soft: #e6edfd; --red: #e11d48; --red-soft: #fde7ec; --green: #0f8a5f; --green-soft: #e3f5ed;
+  --display: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --text: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0c1220; --surface: #141c30; --line: #24304a; --fg: #e8edf8; --muted: #9aa6bf;
+  --blue: #6f93ff; --blue-soft: #1b2850; --red: #ff6b88; --red-soft: #3a1622; --green: #4fd1a0; --green-soft: #12302a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0c1220; --surface: #141c30; --line: #24304a; --fg: #e8edf8; --muted: #9aa6bf;
+  --blue: #6f93ff; --blue-soft: #1b2850; --red: #ff6b88; --red-soft: #3a1622; --green: #4fd1a0; --green-soft: #12302a; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font: 16px/1.65 var(--text); }
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 48px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: 1.5rem; font-weight: 700; margin-top: 52px; padding-top: 22px; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; max-width: 68ch; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 0.75rem/1 var(--text); letter-spacing: 0.14em; text-transform: uppercase; color: var(--blue); }
+.lead { font-size: 1.15rem; color: var(--muted); }
+.mark { color: var(--blue); }
+.mark i { font-style: normal; color: var(--red); }
+header { display: flex; flex-direction: column; gap: 14px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 0.85rem; color: var(--muted); }
+section > .stack { margin-top: 16px; }
+ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; }
+li { max-width: 68ch; }
+strong { font-weight: 600; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 16px; }
+.role { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.role p, .role li { font-size: 0.93rem; }
+.role .tag { font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+.flow { list-style: none; padding: 0; counter-reset: s; gap: 10px; margin-top: 16px; }
+.flow li { counter-increment: s; display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; }
+.flow li::before { content: counter(s); font: 700 0.9rem/34px var(--display); text-align: center; width: 34px; height: 34px; border-radius: 50%; background: var(--blue-soft); color: var(--blue); }
+.flow li div { padding-top: 5px; }
+.tablewrap { overflow-x: auto; margin-top: 16px; border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 0.92rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; background: var(--surface); }
+tr:last-child td { border-bottom: 0; }
+.pill { display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.live { background: var(--green-soft); color: var(--green); }
+.test { background: var(--blue-soft); color: var(--blue); }
+.todo { background: var(--red-soft); color: var(--red); }
+.money { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-top: 16px; display: flex; flex-direction: column; gap: 6px; font-variant-numeric: tabular-nums; }
+.money .row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.money .total { border-top: 1px solid var(--line); padding-top: 8px; font-weight: 600; }
+code { font-size: 0.88em; background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; overflow-wrap: anywhere; }
+.note { font-size: 0.88rem; color: var(--muted); }
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Product brief · November 2026</span>
+  <h1><span class="mark">MyVote<i>Hub</i></span>: event voting for Ghana</h1>
+  <p class="lead">MyVoteHub lets any event company run public voting for awards, pageants and reality shows. Fans vote with MoMo, a card or a USSD code, judges score in secret, and the organiser gets paid out from their wallet.</p>
+  <div class="meta"><span>Web, Android, and USSD on any phone</span><span>Status: built and live; payments in test mode</span></div>
+</header>
+
+<section>
+  <h2>Why it exists</h2>
+  <div class="stack">
+    <p>Event voting in Ghana is big business: music awards, campus awards, pageants and TV reality shows all charge fans per vote. Most organisers still use a hired developer's one-off site, a WhatsApp poll or a manual MoMo number. The result is disputed counts, slow payouts and no audit trail.</p>
+    <p>MyVoteHub is one shared platform that any organiser can sign up to. It collects the money, counts every vote the same way across all channels, keeps judges' scores sealed until the reveal, and shows everyone a live count they can trust. MyVoteHub earns a commission on paid votes.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Who uses it</h2>
+  <div class="grid">
+    <div class="role"><h3>Voters</h3><span class="tag">No account needed</span><p>Find an event, pick a nominee and vote on the web, in the app or by dialling the USSD code. They get a receipt and can watch the live leaderboard.</p></div>
+    <div class="role"><h3>Organisers</h3><span class="tag">Event companies</span><p>Create events, categories and nominees, set prices, invite judges, run eviction rounds, watch votes and money come in, and withdraw earnings.</p></div>
+    <div class="role"><h3>Team members</h3><span class="tag">Join with a company code</span><p>Help run the company's events under the organiser's account.</p></div>
+    <div class="role"><h3>Judges</h3><span class="tag">Join with a company code</span><p>Score nominees on a private score sheet. Nobody, the organiser included, sees raw scores until results are released.</p></div>
+    <div class="role"><h3>Nominees</h3><span class="tag">Private link</span><p>Get a personal link and QR to share for votes, plus a dashboard showing their own total.</p></div>
+    <div class="role"><h3>MyVoteHub staff</h3><span class="tag">Separate Admin app</span><p>Approve every account and event, set commission, decide withdrawals, manage USSD and keep the audit log.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>How an event runs</h2>
+  <ol class="flow">
+    <li><div><strong>Sign up.</strong> The organiser creates a company account. It waits until a MyVoteHub admin approves it.</div></li>
+    <li><div><strong>Build the event.</strong> A step-by-step builder covers the details, categories, nominees (pasted as a list), voting type and the public/judge weighting such as 70/30.</div></li>
+    <li><div><strong>Approval.</strong> The admin approves the event, and the organiser opens voting.</div></li>
+    <li><div><strong>Promotion.</strong> Nominees share their link, QR or USSD code (e.g. "dial the code, enter AOY-03").</div></li>
+    <li><div><strong>Voting.</strong> Votes arrive from web, app and USSD into one count. The organiser's dashboard updates live.</div></li>
+    <li><div><strong>Rounds.</strong> For reality shows, the organiser closes a round, evicts the lowest nominees, and chooses whether votes reset or carry over.</div></li>
+    <li><div><strong>Results.</strong> Judge scores are unsealed and combined with public votes by the chosen weighting. Results go on a full-screen reveal for the live show, with 3rd, 2nd and then the winner.</div></li>
+    <li><div><strong>Payout.</strong> The organiser requests a withdrawal to MoMo or bank, and the admin approves it.</div></li>
+  </ol>
+</section>
+
+<section>
+  <h2>Features</h2>
+  <div class="grid">
+    <div class="role"><h3>Voting options</h3><ul>
+      <li><strong>Paid voting</strong> with vote bundles, e.g. 5 votes for GH₵5 or 100 for GH₵80</li>
+      <li><strong>Free polls</strong> with a phone code, limited per voter (once per event or once a day)</li>
+      <li><strong>Judges' secret scores</strong> blended with public votes</li>
+      <li><strong>Eviction rounds</strong> for reality shows</li>
+    </ul></div>
+    <div class="role"><h3>Three ways to vote</h3><ul>
+      <li><strong>Web</strong>, with no download needed</li>
+      <li><strong>Android app</strong></li>
+      <li><strong>USSD</strong> on any phone, no data needed: by nominee code or by browsing menus, plus "check my votes"</li>
+    </ul><p class="note">Voters and nominees see one combined total. Only organisers see the split by channel.</p></div>
+    <div class="role"><h3>For organisers</h3><ul>
+      <li>Live dashboard, vote log and payments, with CSV export</li>
+      <li>Wallet with earnings and withdrawals</li>
+      <li>USSD settings per event: bundles, greeting, on or off</li>
+      <li>Team management and judge assignment</li>
+    </ul></div>
+    <div class="role"><h3>For MyVoteHub admins</h3><ul>
+      <li>Approve, suspend, activate, deactivate or delete any account</li>
+      <li>Approve companies and events, and set each company's commission</li>
+      <li>Decide withdrawals, view all transactions and the audit log</li>
+      <li>Edit the USSD menu wording, pin or hide events on USSD</li>
+      <li>Reset forgotten passwords; switch test mode</li>
+    </ul></div>
+  </div>
+</section>
+
+<section>
+  <h2>How the money works</h2>
+  <div class="stack">
+    <p>Voters pay MyVoteHub by MoMo or card through Hubtel. Each payment is split straight away: MyVoteHub keeps its commission and the rest goes to the organiser's wallet. Commission is set per company (10% by default, maximum 50%). There are no setup fees and no withdrawal fees.</p>
+  </div>
+  <div class="money">
+    <div class="row"><span>A fan buys 100 votes</span><span>GH₵ 80.00</span></div>
+    <div class="row"><span>MyVoteHub commission (10%)</span><span>− GH₵ 8.00</span></div>
+    <div class="row total"><span>Added to the organiser's wallet</span><span>GH₵ 72.00</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Trust and fairness</h2>
+  <ul style="margin-top:16px">
+    <li><strong>Approval first:</strong> no company, team member, judge or event goes live without a MyVoteHub admin.</li>
+    <li><strong>Counts come from the server:</strong> votes are recorded only after payment is confirmed, so nobody can add votes from their browser.</li>
+    <li><strong>Sealed judging:</strong> each judge sees only their own scores, and organisers never see raw scores.</li>
+    <li><strong>Free-vote limits:</strong> codes expire after 10 minutes and allow 5 tries. Limits apply per phone number, and sudden vote bursts are flagged.</li>
+    <li><strong>Receipts and audit log:</strong> every vote has a reference, and every admin action is logged.</li>
+    <li><strong>Organisers can't change their own commission,</strong> status or verification.</li>
+    <li><strong>Privacy:</strong> voter phone numbers are masked, and there are a privacy policy and terms written with Ghana's Data Protection Act (Act 843) in mind.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>The apps</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>App</th><th>Who it's for</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td><strong>MyVoteHub</strong></td><td>Voters, organisers, team members, judges</td><td><code>nyamebabaku-lab.github.io/myvotehub</code> and Android app</td></tr>
+      <tr><td><strong>MyVoteHub Admin</strong></td><td>MyVoteHub staff only</td><td><code>…/myvotehub/admin</code> and a separate Android app</td></tr>
+      <tr><td><strong>Demo</strong></td><td>Sales and showing people</td><td><code>…/myvotehub/demo</code> with sample events, no real data</td></tr>
+      <tr><td><strong>USSD</strong></td><td>Voters without data or smartphones</td><td>Shared code, e.g. <code>*713*44#</code>, once a provider is chosen</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note" style="margin-top:12px">Built as one codebase (React, Supabase database and logins, Capacitor for Android). An iPhone app can be built from the same code later; iPhone users can use the website now.</p>
+</section>
+
+<section>
+  <h2>Where it stands</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Area</th><th>Status</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Web and Android apps, accounts, approval</td><td><span class="pill live">Live</span></td><td>Android version 1.0.4</td></tr>
+      <tr><td>Events, judging, rounds, results, reveal</td><td><span class="pill live">Live</span></td><td></td></tr>
+      <tr><td>Password help</td><td><span class="pill live">Live</span></td><td>Admin reset works now; email codes need Brevo</td></tr>
+      <tr><td>Payments and payouts</td><td><span class="pill test">Test mode</span></td><td>Simulated until Hubtel is connected</td></tr>
+      <tr><td>USSD voting</td><td><span class="pill test">Test mode</span></td><td>Built and tested; needs a provider and code</td></tr>
+      <tr><td>SMS receipts and codes</td><td><span class="pill test">Test mode</span></td><td>Needs an SMS provider and sender ID</td></tr>
+      <tr><td>Flyer QR address</td><td><span class="pill todo">Waiting</span></td><td>Needs the GitHub organisation "myvotehub"</td></tr>
+      <tr><td>Own hosting, Play Store, legal registration</td><td><span class="pill todo">To do</span></td><td>See the launch checklist</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Next steps</h2>
+  <ol class="flow">
+    <li><div><strong>Hubtel payments and payouts.</strong> This blocks real paid events.</div></li>
+    <li><div><strong>USSD provider and code,</strong> then real SMS.</div></li>
+    <li><div><strong>Move to MyVoteHub's own Supabase Pro project</strong> ($25/month) before real traffic.</div></li>
+    <li><div><strong>Google Play listing,</strong> a lawyer's review of the privacy and terms pages, and Data Protection Commission registration.</div></li>
+    <li><div><strong>Launch the flyer campaign</strong> to organisers and voters.</div></li>
+  </ol>
+</section>
+</div>

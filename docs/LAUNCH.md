@@ -12,8 +12,16 @@ Work top to bottom. ✅ = done, ⬜ = to do.
 - ⬜ Add at least one more admin (Admin app → Request admin access → approve) so you're never locked out
 
 ## Money (blocking for paid events)
-- ⬜ Hubtel merchant account + API keys; ask Hubtel whether Online Checkout / Send Money need IP whitelisting
-- ⬜ Connect Hubtel checkout, payment callback and payouts (next build step)
+Payments are built: direct MoMo prompt (MTN, Telecel, AirtelTigo), card checkout, USSD MoMo prompt, automatic payouts.
+Admin app → Settings → **Payments & payouts** shows what is connected.
+- ✅ Payment server (`supabase/functions/pay`), database rules (`0008_payments.sql`), Admin payout buttons
+- ⬜ Deploy the `pay` function and the updated `ussd` function (needs your OK)
+- ⬜ **Paystack**: `bash scripts/set-payment-keys.sh paystack` (paste the secret key, hidden). Start with the **test** key (sk_test_…)
+  - Dashboard → Settings → API Keys & Webhooks → Webhook URL: `https://jepkzvunetajsgscoelv.supabase.co/functions/v1/pay/paystack`
+  - Payouts: enable Transfers, turn **off** "confirm transfers with OTP", keep a Paystack balance to pay from
+  - Test: turn test mode off, vote with MoMo number `0551234987` (Paystack's test number), then switch to the live key
+- ⬜ **Hubtel** (optional second provider): Hubtel only accepts whitelisted IPs, so run `relay/hubtel-relay.mjs` on a small
+  server with a fixed IP, give Hubtel that IP, then `bash scripts/set-payment-keys.sh hubtel`
 - ⬜ Turn **test mode off** (Admin → Settings) and **clear test data**
 
 ## USSD

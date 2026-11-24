@@ -7,7 +7,7 @@ import { fmtDateTime, money, moneyShort, sum } from '../../lib/format';
 import { METHODS } from '../../lib/payments';
 import { Badge, Button, Card, CardHeader, DataTable, Field, Input, Modal, PageHeader, Select, StatCard, toast, cx } from '../../components/ui';
 
-const WD_TONE = { pending: 'amber', paid: 'green', rejected: 'red', approved: 'blue' };
+const WD_TONE = { pending: 'amber', processing: 'blue', paid: 'green', rejected: 'red', failed: 'red', approved: 'blue' };
 
 export default function Wallet() {
   const user = useCurrentUser();

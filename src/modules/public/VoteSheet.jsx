@@ -1,5 +1,5 @@
 // The vote flow: choose votes → pay (MoMo/card) or verify phone (free) → confirmation.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, CheckCircle2, XCircle, Smartphone, CreditCard, ShieldCheck, Share2, Minus, Plus, Lock } from 'lucide-react';
 import { useDB, useSession } from '../../data/store';
@@ -9,8 +9,8 @@ import { money } from '../../lib/format';
 import { shareLink, publicUrl } from '../../lib/share';
 import { Modal, Button, Input, Field, cx, toast } from '../../components/ui';
 import { NomineePhoto } from '../../components/event';
-import { LIVE } from '../../config';
-import { livePay, liveRequestCode, liveCastFree } from '../../lib/liveVoting';
+import { LIVE, IS_NATIVE } from '../../config';
+import { livePay, liveRequestCode, liveCastFree, liveCharge, liveSubmitOtp, waitForPayment } from '../../lib/liveVoting';
 
 const validPhone = (p) => /^0\d{9}$/.test(p.replace(/\s/g, ''));
 const validCard = (c) => c.replace(/\s/g, '').length >= 15;
@@ -19,6 +19,9 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
   const free = event.votingMode === 'free';
   const savedVoter = useSession((s) => s.voter);
   const testMode = useDB((s) => LIVE && s.settings.testMode);
+  // Real money: live build with test mode off. Card details are entered on the provider's secure page.
+  const real = LIVE && !testMode;
+  const provider = useDB((s) => (s.settings.payProvider === 'hubtel' ? 'Hubtel' : 'Paystack'));
   const setVoter = useSession((s) => s.setVoter);
   const category = useDB((s) => s.categories.find((c) => c.id === nominee?.categoryId));
   const [step, setStep] = useState('qty');
@@ -28,6 +31,10 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
   const [card, setCard] = useState({ exp: '', cvv: '' });
   const [otp, setOtp] = useState({ sent: null, code: '' });
   const [result, setResult] = useState(null);
+  const [email, setEmail] = useState('');
+  const [live, setLive] = useState(null); // { ref, message } while a real payment is in progress
+  const [code, setCode] = useState('');
+  const run = useRef(0); // bumps when the sheet opens or closes, so a late payment answer cannot change a newer sheet
 
   useEffect(() => {
     if (!open) return;
@@ -38,6 +45,8 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
     setAccount(saved && !saved.includes('@') ? saved : '');
     setOtp({ sent: null, code: '' });
     setResult(null);
+    setLive(null);
+    run.current += 1;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when a different event/sheet opens, not on live data refreshes
   }, [open, free, event?.id]);
 
@@ -49,6 +58,7 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
 
   const pay = async () => {
     if (m.kind === 'momo' && !validPhone(account)) return toast.error('Enter a valid phone number', 'e.g. 0244123456');
+    if (real) return realPay();
     if (m.kind === 'card' && (!validCard(account) || !card.exp || card.cvv.length < 3)) return toast.error('Check your card details');
     setStep('processing');
     if (LIVE) {
@@ -74,6 +84,48 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
       setResult({ error: res.error, ref: payment.ref });
       setStep('failed');
     }
+  };
+
+  const finish = (s) => {
+    setLive(null);
+    if (s.status === 'success') { setResult({ ref: s.ref, qty }); setStep('done'); return; }
+    if (s.status === 'pending') setResult({ waiting: true, ref: s.ref, error: 'We have not heard back yet. If you approved the payment, your votes appear on your receipt shortly' });
+    else setResult({ ref: s.ref, error: (s.note || s.message || 'The payment was not completed').replace(/\.$/, '') });
+    setStep('failed');
+  };
+  const follow = async (res) => {
+    const mine = run.current;
+    if (res.status === 'success' || res.status === 'failed') return finish(res);
+    setLive({ ref: res.ref, message: res.message });
+    if (res.status === 'otp') { setCode(''); setStep('otp'); return; }
+    setStep('processing');
+    const s = await waitForPayment(res.ref, { onTick: (x) => mine === run.current && x.note && setLive((l) => l && { ...l, message: x.note }), signal: { get aborted() { return mine !== run.current; } } });
+    if (mine === run.current) finish(s);
+  };
+  const realPay = async () => {
+    if (email && !/.+@.+\..+/.test(email)) return toast.error('Check your email address');
+    // Open the card window inside the tap, or the browser blocks it as a pop-up.
+    const win = m.kind === 'card' && !IS_NATIVE ? window.open('', '_blank') : null;
+    setStep('processing');
+    setLive({ message: m.kind === 'card' ? 'Opening the secure card page…' : 'Sending the payment prompt to your phone…' });
+    try {
+      const res = await liveCharge({ nominee, qty, method, phone: account.replace(/\s/g, ''), email });
+      if (m.kind === 'momo') setVoter(voterId, useSession.getState().voterCode);
+      if (res.status === 'redirect') {
+        if (win) win.location.href = res.url; else window.location.href = res.url;
+        return follow({ ...res, status: 'pending', message: 'Finish paying on the card page. This screen updates by itself.' });
+      }
+      win?.close();
+      follow(res);
+    } catch (e) {
+      win?.close();
+      finish({ status: 'failed', message: e.message });
+    }
+  };
+  const submitCode = async () => {
+    if (code.length < 4) return toast.error('Enter the code from the SMS');
+    setStep('processing');
+    try { follow(await liveSubmitOtp(live.ref, code)); } catch (e) { finish({ status: 'failed', ref: live?.ref, message: e.message }); }
   };
 
   // Live: a verified phone keeps its code for 30 minutes so other categories don't need a new one.
@@ -188,9 +240,14 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
         </div>
         <div className="mt-4 space-y-3">
           {m.kind === 'momo' ? (
-            <Field label="Mobile money number" hint="You'll get a prompt on this phone to enter your PIN. Demo: numbers ending in 000 are declined.">
+            <Field label="Mobile money number" hint={real ? "You'll get a prompt on this phone to approve with your PIN." : "You'll get a prompt on this phone to enter your PIN. Demo: numbers ending in 000 are declined."}>
               <Input inputMode="tel" placeholder="024 412 3456" value={account} onChange={(e) => setAccount(e.target.value)} />
             </Field>
+          ) : real ? (
+            <>
+              <p className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-600 dark:bg-white/5 dark:text-slate-300">You'll enter your card on {provider}'s secure page. MyVoteHub never sees your card number.</p>
+              <Field label="Email for your receipt (optional)"><Input type="email" inputMode="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+            </>
           ) : (
             <>
               <Field label="Card number" hint="Demo: any number works; one ending in 0002 is declined.">
@@ -207,7 +264,7 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
           <span className="text-slate-500">{qty} vote{qty > 1 && 's'} for {nominee.name.split(' — ')[0]}</span>
           <span className="text-lg font-extrabold text-slate-900 dark:text-white">{money(amount)}</span>
         </div>
-        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-400"><Lock className="h-3.5 w-3.5" /> Secured payment · Simulated in this demo</p>
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-400"><Lock className="h-3.5 w-3.5" /> {real ? `Secured by ${provider}` : 'Secured payment · Simulated in this demo'}</p>
       </>
     );
     footer = (
@@ -225,10 +282,28 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
           <div className="absolute inset-0 animate-ping rounded-full bg-brand-400/30" />
           <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-brand-600 text-white">{m.kind === 'card' ? <CreditCard className="h-8 w-8" /> : <Smartphone className="h-8 w-8" />}</div>
         </div>
-        <p className="mt-6 text-lg font-extrabold text-slate-900 dark:text-white">{m.kind === 'card' ? 'Authorising your card…' : 'Check your phone'}</p>
-        <p className="mt-1 max-w-xs text-sm text-slate-500">{m.kind === 'card' ? 'Contacting your bank. This takes a few seconds.' : `Approve the ${m.label} prompt for ${money(amount)} by entering your PIN.`}</p>
+        <p className="mt-6 text-lg font-extrabold text-slate-900 dark:text-white">{m.kind === 'card' ? (real ? 'Paying by card' : 'Authorising your card…') : 'Check your phone'}</p>
+        <p className="mt-1 max-w-xs text-sm text-slate-500">{live?.message || (m.kind === 'card' ? 'Contacting your bank. This takes a few seconds.' : `Approve the ${m.label} prompt for ${money(amount)} by entering your PIN.`)}</p>
         <Loader2 className="mt-6 h-6 w-6 animate-spin text-brand-600" />
+        {live?.ref && <p className="mt-4 font-mono text-xs text-slate-400">Ref {live.ref}</p>}
       </div>
+    );
+    if (real && live?.ref) footer = <Button variant="secondary" className="w-full" onClick={onClose}>Close — I'll check my receipt later</Button>;
+  } else if (step === 'otp') {
+    body = (
+      <>
+        {header}
+        <p className="text-sm text-slate-600 dark:text-slate-300">{live?.message || 'Enter the code sent to your phone.'}</p>
+        <Field label="Code" className="mt-3">
+          <Input inputMode="numeric" autoFocus maxLength={8} placeholder="••••••" className="text-center text-lg font-bold tracking-[.4em]" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
+        </Field>
+      </>
+    );
+    footer = (
+      <>
+        <Button variant="secondary" onClick={() => setStep('pay')}>Back</Button>
+        <Button variant="danger" size="lg" className="flex-1" onClick={submitCode}>Confirm payment</Button>
+      </>
     );
   } else if (step === 'verify') {
     body = (
@@ -303,20 +378,21 @@ export default function VoteSheet({ event, nominee, open, onClose }) {
     body = (
       <div className="flex flex-col items-center py-6 text-center">
         <div className="flex h-20 w-20 animate-pop items-center justify-center rounded-full bg-accent-600 text-white"><XCircle className="h-10 w-10" /></div>
-        <p className="mt-5 text-xl font-extrabold text-slate-900 dark:text-white">Payment failed</p>
-        <p className="mt-1 text-slate-500">{result?.error}. You have not been charged.</p>
+        <p className="mt-5 text-xl font-extrabold text-slate-900 dark:text-white">{result?.waiting ? 'Still waiting' : 'Payment failed'}</p>
+        <p className="mt-1 text-slate-500">{result?.error}.{!result?.waiting && ' You have not been charged.'}</p>
+        {result?.ref && real && <Link to={`/receipt/${result.ref}`} onClick={onClose} className="mt-3 text-sm font-bold text-brand-600 hover:underline">Check receipt {result.ref}</Link>}
       </div>
     );
     footer = (
       <>
         <Button variant="secondary" onClick={onClose}>Close</Button>
-        <Button variant="danger" className="flex-1" onClick={() => setStep('pay')}>Try again</Button>
+        {!result?.waiting && <Button variant="danger" className="flex-1" onClick={() => setStep('pay')}>Try again</Button>}
       </>
     );
   }
 
   return (
-    <Modal open={open} onClose={step === 'processing' ? () => {} : onClose} title={free ? 'Free vote' : 'Vote'} subtitle={event.title} size="sm" footer={footer}>
+    <Modal open={open} onClose={step === 'processing' && !(real && live?.ref) ? () => {} : () => { run.current += 1; onClose(); }} title={free ? 'Free vote' : 'Vote'} subtitle={event.title} size="sm" footer={footer}>
       {testMode && !free && <p className="mb-4 rounded-xl bg-amber-50 px-3 py-2 text-center text-xs font-bold uppercase tracking-wider text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">Test mode — no real money is charged</p>}
       {body}
     </Modal>

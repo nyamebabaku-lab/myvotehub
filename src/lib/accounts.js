@@ -127,3 +127,4 @@ export const setAdminRole = (id, makeSuper) => after(supabase.rpc('set_admin_rol
 export const adminResetPassword = (id, temp) => after(supabase.rpc('admin_reset_password', { target: id, temp_password: temp }));
 export const setTestMode = (flag) => after(supabase.rpc('set_test_mode', { flag }));
 export const clearTestData = () => after(supabase.rpc('clear_test_data'));
+export const setPaymentConfig = (pay, payout, auto) => after(supabase.rpc('set_payment_config', { pay, payout, auto }));

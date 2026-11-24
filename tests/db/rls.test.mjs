@@ -9,7 +9,7 @@ create schema extensions; create function extensions.gen_salt(text) returns text
 create function extensions.crypt(text, text) returns text language sql as $$ select $2 || md5($1) $$;
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.uid', true), '')::uuid $$;
 create function auth.email() returns text language sql stable as $$ select nullif(current_setting('request.email', true), '') $$;
-create publication supabase_realtime; create role anon; create role authenticated;`);
+create publication supabase_realtime; create role anon; create role authenticated; create role service_role;`);
 for (const f of readdirSync(M).filter((x) => x.endsWith('.sql')).sort()) {
   try { await db.exec(readFileSync(M + f, 'utf8').replace('create extension if not exists pgcrypto;', '')); }
   catch (e) { console.log('MIGRATION ERROR', f, e.message); process.exit(1); }

@@ -6,9 +6,7 @@
 //
 // The secret key stops strangers from faking votes for other phone numbers.
 // Check each provider's current docs when connecting: field names below follow their published formats.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
-
-const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
+import { charge, db, networkOf, type ProviderName } from '../_shared/providers.ts';
 const KEY = Deno.env.get('USSD_KEY') || '';
 
 type Step = { sessionId: string; phone: string; input: string; release?: boolean };
@@ -21,7 +19,27 @@ async function step(s: Step): Promise<Screen> {
   }
   const { data, error } = await db.rpc('ussd_step', { sid: s.sessionId, msisdn: s.phone, input: s.input });
   if (error || !data?.[0]) return { message: 'MyVoteHub is busy. Please try again shortly.', done: true };
+  // A paid vote queues a payment; the MoMo prompt is sent after this screen reaches the caller.
+  if (data[0].done) waitUntil(sendQueuedCharges(s.phone));
   return data[0];
+}
+
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
+const waitUntil = (p: Promise<unknown>) => (typeof EdgeRuntime !== 'undefined' ? EdgeRuntime.waitUntil(p) : p.catch(() => {}));
+
+async function sendQueuedCharges(phone: string) {
+  const { data } = await db.rpc('claim_ussd_charges', { msisdn: phone });
+  for (const p of data || []) {
+    // Give the network a moment to close the USSD session, or the MoMo prompt can be dropped.
+    await new Promise((r) => setTimeout(r, 2500));
+    const r = await charge({ ref: p.ref, amount: Number(p.amount), voter: p.voter, method: networkOf(p.voter), provider: p.provider as ProviderName });
+    if (r.status === 'otp') {
+      await db.rpc('fail_payment', { r: p.ref, reason: 'This network needs a code, which USSD cannot take. No money was taken.', info: null });
+      await db.from('sms_log').insert({ phone: p.voter, message: `MyVoteHub: your network needs a payment code that USSD cannot take. Vote online instead. No money was taken. Ref ${p.ref}`, event_id: p.event_id });
+    } else if (r.status === 'failed') {
+      await db.from('sms_log').insert({ phone: p.voter, message: `MyVoteHub: payment ${p.ref} did not go through (${r.message}). No money was taken.`, event_id: p.event_id });
+    }
+  }
 }
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } });

@@ -1,0 +1,6 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MyVoteHub · Payment</title>
+<style>body{margin:0;font:16px/1.5 system-ui,sans-serif;background:#f5f7fd;color:#111a2e;display:grid;place-items:center;min-height:100vh;padding:16px;box-sizing:border-box}
+.c{background:#fff;border-radius:20px;padding:28px;max-width:380px;text-align:center;box-shadow:0 20px 50px -25px rgba(37,86,235,.45)}a{display:inline-block;margin-top:16px;background:#2556eb;color:#fff;padding:12px 20px;border-radius:12px;text-decoration:none;font-weight:700}</style></head>
+<body><div class="c"><h1 style="font-size:22px;margin:0 0 8px">Payment received by your bank</h1><p>We are confirming it now. Your votes appear on your receipt in a few seconds. You can close this page and go back to MyVoteHub.</p><a id="go" href="./">See my receipt</a></div>
+<script>var q=new URLSearchParams(location.search),r=q.get('reference')||q.get('trxref')||q.get('clientReference');if(r){document.getElementById('go').href='./#/receipt/'+encodeURIComponent(r);}</script></body></html>

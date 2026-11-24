@@ -24,3 +24,36 @@ export async function liveCastFree({ phone, code, nominee }) {
 }
 
 export const liveReceipt = async (ref) => must(await supabase.rpc('receipt', { r: ref }))?.[0] || null;
+
+// ---------------------------------------------------------------- real payments (test mode off): the `pay` Edge Function
+async function payFn(route, body) {
+  const { data, error } = await supabase.functions.invoke(`pay/${route}`, { body });
+  if (error) {
+    let msg = error.message;
+    try { msg = (await error.context.json()).error || msg; } catch { /* not JSON */ }
+    throw new Error(msg);
+  }
+  return data;
+}
+
+/** Starts a real MoMo prompt or card checkout. Returns { ref, status: pending|otp|redirect|success|failed, message?, url? }. */
+export const liveCharge = ({ nominee, qty, method, phone, email }) => payFn('start', { nominee: nominee.id, qty, method, phone, email, device: deviceId() });
+export const liveSubmitOtp = (ref, otp) => payFn('otp', { ref, otp });
+export const livePayStatus = (ref) => payFn('status', { ref });
+export const livePayout = (withdrawal) => payFn('payout', { withdrawal });
+export const payHealth = async () => {
+  const { data, error } = await supabase.functions.invoke('pay/health', { method: 'GET' });
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/** Polls until the payment is no longer pending (about 3 minutes), then refreshes the app's data. */
+export async function waitForPayment(ref, { onTick, signal } = {}) {
+  for (let i = 0; i < 60 && !signal?.aborted; i++) {
+    await wait(i < 5 ? 2500 : 4000);
+    const s = await livePayStatus(ref).catch(() => null);
+    if (s) onTick?.(s);
+    if (s && s.status !== 'pending') { refresh(); return s; }
+  }
+  return { ref, status: 'pending' };
+}

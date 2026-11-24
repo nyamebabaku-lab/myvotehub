@@ -51,6 +51,7 @@ export const settingsFromRow = (r) => ({
   platformName: r.platform_name, currency: r.currency, defaultCommission: Number(r.default_commission), minWithdrawal: Number(r.min_withdrawal),
   requireEventApproval: r.require_event_approval, maxVotesPerMinute: r.max_votes_per_minute, supportEmail: r.support_email, supportPhone: r.support_phone,
   testMode: r.test_mode, reservedAdminEmail: r.reserved_admin_email, ussdCode: r.ussd_code || '', smsMode: r.sms_mode, ussdConfig: r.ussd_config || {},
+  payProvider: r.pay_provider || 'paystack', payoutProvider: r.payout_provider || 'paystack', autoPayout: r.auto_payout ?? true,
 });
 export const settingsToRow = (s) => ({
   platform_name: s.platformName, currency: s.currency, default_commission: s.defaultCommission, min_withdrawal: s.minWithdrawal,

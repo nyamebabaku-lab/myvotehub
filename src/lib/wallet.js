@@ -15,7 +15,7 @@ export function walletFor(companyId, { payments, withdrawals, settings }, eventI
   const commission = sum(ok, (p) => p.commission);
   const net = sum(ok, (p) => p.net);
   const paidOut = sum(mine.filter((w) => w.status === 'paid'), (w) => w.amount + (w.fee || 0));
-  const pending = sum(mine.filter((w) => w.status === 'pending'), (w) => w.amount + (w.fee || 0));
+  const pending = sum(mine.filter((w) => w.status === 'pending' || w.status === 'processing'), (w) => w.amount + (w.fee || 0));
   return { gross, commission, net, paidOut, pending, available: eventId ? net : Math.max(0, net - paidOut - pending), votesSold: sum(ok, (p) => p.votes), txCount: ok.length };
 }
 
@@ -54,6 +54,12 @@ export async function decideWithdrawal(id, approve, note = '') {
   });
   db.log(approve ? 'Withdrawal paid' : 'Withdrawal rejected', `${money(w.amount)} to ${destinationLabel(w.destination)}${note ? ` — ${note}` : ''}`, { companyId: w.companyId });
   db.notify({ companyId: w.companyId, title: approve ? 'Withdrawal paid' : 'Withdrawal rejected', text: `${money(w.amount)}${note ? ` — ${note}` : ''}`, link: '/app/wallet' });
+}
+
+/** Live only: records a payout the admin sent outside the app. */
+export async function markWithdrawalPaid(id, ref, note = '') {
+  must(await supabase.rpc('mark_withdrawal_paid', { wid: id, pref: ref.trim(), note: note || null }));
+  return refresh();
 }
 
 /** Platform earnings: commission on every successful paid vote. */

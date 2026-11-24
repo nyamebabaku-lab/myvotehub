@@ -4,6 +4,7 @@ import { useDB } from '../../data/store';
 import { useCurrentUser } from '../../data/selectors';
 import { LIVE } from '../../config';
 import { setTestMode, clearTestData } from '../../lib/accounts';
+import PaymentsCard from './PaymentsCard';
 import { Button, Card, CardHeader, Field, Input, PageHeader, Select, confirmDialog, toast } from '../../components/ui';
 
 export default function Settings() {
@@ -25,7 +26,7 @@ export default function Settings() {
   const me = useCurrentUser();
   const toggleTest = async () => {
     const next = !f.testMode;
-    if (!(await confirmDialog(next ? 'Turn test mode on?' : 'Turn test mode off?', next ? 'Simulated checkout comes back and test money counts again.' : 'Simulated checkout stops and test money no longer counts. Do this only when real Hubtel payments are connected.', { confirmLabel: 'Confirm' }))) return;
+    if (!(await confirmDialog(next ? 'Turn test mode on?' : 'Turn test mode off?', next ? 'Simulated checkout comes back and test money counts again.' : 'Simulated checkout stops and test money no longer counts. Do this only when Paystack or Hubtel is connected (see Payments & payouts below).', { confirmLabel: 'Confirm' }))) return;
     try {
       await setTestMode(next);
       setF((x) => ({ ...x, testMode: next }));
@@ -69,14 +70,16 @@ export default function Settings() {
           <Card className="xl:col-span-2">
             <CardHeader title="Test mode" subtitle={f.testMode ? 'ON — checkout is simulated and every payment and vote is marked TEST' : 'OFF — only real payments count'} icon={FlaskConical} />
             <div className="flex flex-col gap-3 p-5 pt-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-slate-500">Keep test mode on until Hubtel is connected. Turning it off hides test money from wallets and results; clearing removes it for good.</p>
+              <p className="text-sm text-slate-500">Keep test mode on until a payment provider is connected. Turning it off hides test money from wallets and results; clearing removes it for good.</p>
               <div className="flex flex-wrap gap-2">
                 <Button variant={f.testMode ? 'danger' : 'secondary'} onClick={toggleTest} disabled={!me?.super}>{f.testMode ? 'Turn test mode off' : 'Turn test mode on'}</Button>
                 <Button variant="soft-red" icon={Trash2} onClick={clearTest} disabled={!me?.super}>Clear test data</Button>
               </div>
             </div>
           </Card>
-        ) : (
+        ) : null}
+        {LIVE && <PaymentsCard />}
+        {!LIVE && (
         <Card className="xl:col-span-2">
           <CardHeader title="Demo data" subtitle={`Stored in this browser · ${kb} KB used`} icon={Database} />
           <div className="flex flex-col gap-3 p-5 pt-3 sm:flex-row sm:items-center sm:justify-between">
